@@ -8,6 +8,7 @@ import scipy as sp
 import bisect
 from scipy.interpolate import interp1d
 from scipy.interpolate import spline
+import scipy.optimize as opt
 from matplotlib import pyplot as plt
 
 ###########
@@ -24,6 +25,7 @@ pathforfigs =u'C:\\Users\In\xe9s\Documents\progs\TFGmodif'
 pathforaux=u'C:\\Users\In\xe9s\Documents\progs\TFGmodif'
 filename=pathforaux+'\CascadeSpectra\Spectra\AtProduction_gammas.dat'
 path=pathforaux+'/sensitivities/'
+path3FGL=u'C:\\Users\In\xe9s\Documents\progs\TFGmodif\3FGL.fit'
 
 #################
 ###Useful data###
@@ -39,6 +41,8 @@ eV = 1e-9 * GeV
 ###############
 ###Functions###
 ###############
+
+#Generation of the DM spectrum
 
 def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e19,boost=1):
     #Options:
@@ -64,7 +68,7 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
         index = np.where(np.abs( (massvals - mass) /mass) == min)
         #print('index',index)
         xvals = 10**(data["Log10x"][index])
-        print(option,mass,'shape xvals',xvals.shape,end=' ')
+        #print(option,mass,'shape xvals',xvals.shape,end=' ')
     else :
         print('\nError: mass out of range\n')
         
@@ -271,7 +275,7 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
     massvals = data["mDM"]
     index = np.where(np.abs( (massvals - mass) / mass) < 0.045)
     xvals = 10**(data["Log10x"][index])
-    print(option,mass,'shape xvals',xvals.shape,end=' ')
+    #print(option,mass,'shape xvals',xvals.shape,end=' ')
     
     def branchingratios(m_branon): #<sigmav>_particle / <sigmav>_total
     #PhysRevD.68.103505
@@ -447,54 +451,128 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
 
 
 
-fig=pl.figure(figsize=(15,10))
+#Data from the 3FGL catalog
 
+def nu(source):	#Source=Source_Name, t=complete catalog matrix
+	Fnu=['nuFnu100_300','nuFnu300_1000','nuFnu1000_3000','nuFnu3000_10000','nuFnu10000_100000']
+					#Spectral energy distribution (MeV)
+	F=['Flux100_300','Flux300_1000','Flux1000_3000','Flux3000_10000','Flux10000_100000']
+	Func=['Unc_Flux100_300','Unc_Flux300_1000','Unc_Flux1000_3000','Unc_Flux3000_10000','Unc_Flux10000_100000']
+	a,b=0,0
+	nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup=[],[],[],[],[],[]
+	while a<3034:	#3034 objects
+		if name[a]==source:
+			while b<len(F):
+				nuFnu.append(t[a][Fnu[b]])
+				flux.append(t[a][F[b]])
+				unc_fluxm.append(-t[a][Func[b]][0])
+				unc_fluxp.append(t[a][Func[b]][1])
+				unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				#unc_nu=unc_flux*nuFnu/flux
+				b=b+1
+		a=a+1
+	nuFnu=np.array(nuFnu)
+	flux=np.array(flux)
+	unc_fluxm=np.array(unc_fluxm)
+	unc_fluxp=np.array(unc_fluxp)
+	unc_num=np.array(unc_num)
+	unc_nup=np.array(unc_nup)
+	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
+
+
+#chi2 function
+
+def chi2(mass) :			
+	"""E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given"""
+	(Edm,nuFnudm) = getDMspectrum('e2','b',mass,chan)
+	i,c2=0,0
+	while i<len(E) :
+		index = np.argmin(np.abs(Edm - E[i]))
+		if np.isnan(unc_num[i]) == True :
+			chi=np.sum(((nuFnu[i]-nuFnudm[index])/unc_nup[i])**2)
+		else :
+			chi=np.sum((nuFnu[i]-nuFnudm[index])**2/unc_num[i]*unc_nup[i])
+		c2=c2+chi
+		i=i+1
+	print('mass',mass,'chi2',c2)
+	return c2
+
+
+##################
+###Main program###
+##################
+
+chan=None
+
+##Chosen points from the catalog 
+
+"""
+#Test points:
+E=np.array([3.e-4,5.e-4,3.e-3,1.e-2])		#TeV
+F=np.array([5.e-13,7.e-13,1.e-13,5.e-16])
+"""
+
+#Opening and closing the catalog
+list=fits.open('3FGL.fit')
+header=fits.getheader('3FGL.fit')
+data=fits.getdata('3FGL.fit')
+t=Table(data)
+
+list.close()
+#print(t)
+#print(data[1])
+
+##Source name
+name=t[:]['Source_Name']
+name=np.array(name)
+Source = name[1]
+print(Source)
+
+##Spectral energy distribution##
+#Ftot=t[:]['nuFnu300_1000']
+#Ftot=np.array(Ftot)
+(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
+
+E=np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+E=E*1e-6
+#logarithmic mid-point of the band
+
+print('Spectral energy distribution',nuFnu)
+print('\nError bars',unc_num,unc_nup)
+
+#Minimization
+m0 = np.array([30])		#GeV
+#b0 = np.array([1])		
+massresult =  opt.minimize(chi2, m0, method='Nelder-Mead', tol=1e-2)
+print(massresult)
+
+mass = massresult['final_simplex'][0][0][0]
+chi2 = massresult['fun']
+
+print('\nMass result=',mass)
 
 ###########
 ###plots###
 ###########
 
-chan=None
+fig=pl.figure(figsize=(12,8))
+
+comment = 'mass='+str(mass)+', $\chi^2$='+str(chi2)
 
 ax=fig.add_subplot(111)
 ax.set_yscale('log')
 ax.set_xscale('log')
-ax.set_xlim(2e-4, 60)
-ax.set_ylim(5e-22,1e-12)
+#ax.set_xlim(2e-4, 60)
+#ax.set_ylim(5e-22,1e-12)
+plt.suptitle(Source,fontsize=18)
+ax.set_title(comment,fontsize=10)
 ax.set_xlabel('$E$ [TeV]')
 ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
 
+ax.errorbar(E, nuFnu, yerr=[unc_num,unc_nup],fmt='--o',linewidth=1)
 
-(Edm1,Fdm1) = getDMspectrum('e2','b',10,chan)
+(Edm1,Fdm1) = getDMspectrum('e2','b',mass,chan)
 ax.plot(Edm1, Fdm1, label="m = 0.01 TeV", color='red', linewidth=1)
-
-(Edm2,Fdm2) = getDMspectrum('e2','b',15,chan)
-ax.plot(Edm2, Fdm2, label="m = 0.015 TeV", color='orange', linewidth=1)
-
-#Chosen points
-xdata=np.array([3.e-4,5.e-4,3.e-3,1.e-2])
-ydata=np.array([5.e-13,7.e-13,1.e-13,5.e-16])
-ax.plot(xdata, ydata, 'c+', label='some points')
-
-#Chi2
-i,chi2=0,0
-while i<len(xdata) :
-	index = np.argmin(np.abs(Edm1 - xdata[i]))
-	chi=np.sum((ydata[i]-Fdm1[index])**2/Fdm1[index])
-	chi2=chi2+chi
-	i=i+1
-print('\nchi2 1',chi2)
-
-i,chi2=0,0
-while i<len(xdata) :
-	index = np.argmin(np.abs(Edm2 - xdata[i]))
-	chi=np.sum((ydata[i]-Fdm2[index])**2/Fdm2[index])
-	chi2=chi2+chi
-	i=i+1
-print('\nchi2 2',chi2)
-
-#option, finalstate, channel, Jfactor, boost = 'e2', 'new', 'b', 1.7e19, 1
-#(Edm,Fdm) = curve_fit(f, xdata, ydata)
-#ax.plot(Edm, Fdm, label="fit to DM spectrum", color='red', linewidth=1)
 
 plt.show()
