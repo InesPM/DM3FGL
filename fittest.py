@@ -21,11 +21,11 @@ pl.rcParams['font.family'] = 'serif'
 pl.rcParams['lines.linewidth'] = 3
 
 
-pathforfigs =u'C:\\Users\In\xe9s\Documents\progs\TFGmodif'
-pathforaux=u'C:\\Users\In\xe9s\Documents\progs\TFGmodif'
-filename=pathforaux+'\CascadeSpectra\Spectra\AtProduction_gammas.dat'
+pathforfigs ='/home/ines/Desktop/DM/TFGmodif'
+pathforaux='/home/ines/Desktop/DM/TFGmodif'
+filename=pathforaux+'/CascadeSpectra/Spectra/AtProduction_gammas.dat'
 path=pathforaux+'/sensitivities/'
-path3FGL=u'C:\\Users\In\xe9s\Documents\progs\TFGmodif\3FGL.fit'
+path3FGL='/home/ines/Desktop/DM/TFGmodif'
 
 ###################
 ### Useful data ###
@@ -475,15 +475,20 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 	unc_num[j] = 0
 	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
 
+##-----------------##
+##- chi2 function -##
+##-----------------##
 
-'''chi2 function'''
+def chi2c(c) :			
+	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given"""
+	#m0 must be given, it will be minimized later
+	
+	Jm = c*6e18
+	J  = Jm*m0
 
-def chi2(c) :			
-	"""E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given"""
-	(Edm,nuFnudm) = getDMspectrum('e2','b',mass=c[0],channel=chan,boost=c[1])
-	Edm,nuFnudm=np.array(Edm),np.array(nuFnudm)
-	mass  = c[0]
-	boost = c[1]
+	(Edm,nuFnudm) = getDMspectrum('e2','b',mass=m0,channel=chan,Jfactor=J)
+	Edm,nuFnudm   = np.array(Edm),np.array(nuFnudm)
+
 	i,c2=0,0
 	while i<len(E) :
 		index = np.argmin(np.abs(Edm - E[i]))
@@ -495,45 +500,73 @@ def chi2(c) :
 		
 		c2    = c2 + chi
 		i=i+1
-	print('mass',mass,'boost',boost,'chi2',c2)
-	if mass>0 :
-		return c2
-	else :
-		print('Mass out of range')
-		return 0
+
+	print('Jm : J/m',Jm[0],'mass',m0,'Jfactor',J[0],'chi2',c2[0])
+	return c2[0]
 
 
-'''chi2 minimization'''
+def chi2m(m) :			
+	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given
 
-def massresult(func) :
-	c0   = [80,1]	#mass0 (GeV), boost0
-	bnds = [(0, 1e6),(0, 1e6)]
-	massresult =  opt.minimize(func, c0, bounds=bnds, method='SLSQP', tol=1e-6)	#func=chi2
-	print(massresult)
-	mass  = massresult['x'][0]
-	boost = massresult['x'][1]
-	chi2  = massresult['fun']
-	
-	if mass-c0[0] > 1e-3 or boost-c0[1] >1e-3 :
-		print('\nMass result=',mass)
-		return mass, boost, chi2
-	else :
-		print('Not fittable')
-		return 0, 0, 0 			#0, 0
-	
+	J  = JM*m
+
+	(Edm,nuFnudm) = getDMspectrum('e2','b',mass=m,channel=chan,Jfactor=J)
+	Edm,nuFnudm   = np.array(Edm),np.array(nuFnudm)
+
+	i,c2 = 0,0
+	while i<len(E) :
+		index = np.argmin(np.abs(Edm - E[i]))
+		delta = (nuFnu[i] - nuFnudm[index])
+		sigma = (unc_nup[i] + unc_num[i]) / 2
+		alpha = (unc_nup[i] - unc_num[i]) / 2
+		A     = (alpha / sigma)
+		chi   = (delta/sigma)**2 * (1 - 2*A*delta/sigma + 5*(A*delta/sigma)**2)
+		
+		c2    = c2 + chi
+		i=i+1
+
+	print('result : mass',m[0],'chi2',c2[0])
+	return c2
+
+##---------------------##
+##- chi2 minimization -##
+##---------------------##
+
+def Jm(func) :
+	c0      = [1]	#Initial J/m value
+	bnds    = [(0, 1e6)]
+	result  = opt.minimize(func, c0, bounds=bnds, method='SLSQP')	#func=chi2c
+	c       = result['x'][0]
+	Jm      = c*6e18
+	Jfactor = Jm*m0
+	chi2    = result['fun']
+
+	print('J/m',Jm,type(Jm),'mass',m0,'Jfactor',Jfactor,'chi2',chi2)
+	return Jm #, chi2, Jfactor, m0
+
+def result(func) :
+	#It depends on Jm (constant)
+
+	#mi      = [m0]	#Initial mass value
+	bnds2   = [(0,1e6)]
+	result  = opt.minimize(func, mi, bounds=bnds2, method='SLSQP', tol=1e-6)	#func=chi22
+	mass    = result['x'][0]
+	chi2    = result['fun']
+	Jfactor = JM*mass
+
+	print('mass',mass,'chi2',chi2)
+	return chi2, Jfactor, mass
+
 ####################
 ### Main program ###
 ####################
 
-chan='b'
+chan = 'b'
+m0   = 20     #GeV
 
-##Chosen points from the catalog 
-
-"""
-#Test points:
-E=np.array([3.e-4,5.e-4,3.e-3,1.e-2])		#TeV
-F=np.array([5.e-13,7.e-13,1.e-13,5.e-16])
-"""
+##----------------------------------##
+##- Chosen points from the catalog -##
+##----------------------------------##
 
 ##Opening and closing the catalog
 list=fits.open('3FGL.fit')
@@ -542,44 +575,76 @@ data=fits.getdata('3FGL.fit')
 t=Table(data)
 list.close()
 
-'''Analysis of different sources'''
+##---------------------------------##
+##- Analysis of different sources -##
+##---------------------------------##
+
+##Creation of a document containing mass, Jfactor and chi2 of each source
+data=open('fitdata.dat','w')
+
+
 
 #name[2502]=3FGL J1924.8-1034
-a=0
-while a<1 :		#test
+
+
+#Different sources
+
+a=2502
+#while a<2503 :		#test
 #while a<3034 :
+#while a<3 :
+
+#Different m0
+b,m0=0,20
+
+while b<4 :
+
 
 	##Source name
 	name=t[:]['Source_Name']
 	Source = name[a]
-	print('\n\n\n\n\n','-------',a,'-------','\n',Source)
+	print('\n\n\n\n\n','-------',a,'-------','\n',Source,'\n m0 =',m0)
 
 	##Spectral energy distribution##
 	#Ftot=t[:]['nuFnu300_1000']
 	#Ftot=np.array(Ftot)
 	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
 
-	E=np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
-	E=E*1e-6	#TeV
+	E    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin = E-np.array([100,300,1000,3000,10000,])
+	Emax = np.array([300,1000,3000,10000,100000])-E
+	
+	E    = E*1e-6	#TeV
+	Emin = Emin*1e-6
+	Emax = Emax*1e-6
 	#logarithmic mid-point of the band
 
 	print('\nSpectral energy distribution',nuFnu)
 	print('\nError bars\n',unc_num,'\n',unc_nup)
 	print('\n\n')
 
-	#Minimization	
-	mass, boost, X2 = massresult(chi2)
-	print('\nMass result=',mass,'\nBoost=',boost,'\nchi2=',X2)
+	##----------------##
+	##- Minimization -##
+	##----------------##
+	
+	JM = Jm(chi2c)
+	mi = [m0]
+	X2, Jfactor, mass = result(chi2m)
+
+	#Jfactor  = 1.7e19
+	#mass     = 30
+	#mass2, X2 = massresult2(chi22)
+	print('\nMass result=',mass,'\nJfactor=',Jfactor,'\nchi2=',X2,'\n\nJ/m',JM)
+	write=Source+' '+str(chan)+' '+str(mass)+' '+str(Jfactor)+' '+str(X2)+'\n'
+	data.write(write)
+
 
 	#############
 	### plots ###
 	#############
 
 	fig=pl.figure(num=a)
-	if mass!=0:
-		comment = 'mass='+str(mass)+'GeV, boost='+str(boost)+', $\chi^2$='+str(X2)
-	else:
-		comment = 'Not fittable'
+	comment = 'mass='+str(mass)+'GeV, Jfactor='+str(Jfactor)+'$GeV^2cm^{-5}$, $\chi^2$='+str(X2)
 
 	#comment = 'mass='+str(mass)+'GeV, '+'$\chi^2$='+str(X2)
 		
@@ -593,15 +658,19 @@ while a<1 :		#test
 	ax.set_xlabel('$E$ [TeV]')
 	ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
 
-	ax.errorbar(E, nuFnu, yerr=[unc_num,unc_nup],fmt='--o',linewidth=1,label='data')
+	ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup], fmt='--o', linewidth=1, label="data")
 
-	if mass!=0 :
-		(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, boost=boost)
-		ax.plot(Edm1, Fdm1, label="fit", linewidth=1)
+
+	(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
+	ax.plot(Edm1, Fdm1, label="fit", linewidth=1)
 	plt.legend(loc=3, prop={'size':12})	
-	#(Edm1,Fdm1) = getDMspectrum('e2','b',mass,chan)
-	#ax.plot(Edm1, Fdm1, label="m = 0.01 TeV", color='red', linewidth=1)
 
-	a=a+1
+	#a=a+1
+
+	m0=m0+20
+	b=b+1
+
+data.close()
+
 	
 plt.show()
