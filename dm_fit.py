@@ -10,6 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.interpolate import spline
 import scipy.optimize as opt
 from matplotlib import pyplot as plt
+import datetime as dt
 
 #############
 ### Paths ###
@@ -46,7 +47,12 @@ eV  = 1e-9 * GeV
 ##- Generation of the DM spectrum -##
 ##---------------------------------##
 
-def getDMspectrum(evals, option='e2', finalstate='b', mass=1000, channel=None, Jfactor=1.7e19, boost=1):
+def getDMspectrum(evals, mass=1000, Jboost=1):
+	option     = 'e2'
+	finalstate = 'b'
+	channel    = None
+	boost      = 1
+	Jfactor    = Jboost*1.7e19
 	#Options:
 	#  e: outputs (E, dN/dE)
 	#  e2: outputs (E, E**2 dN/dE)
@@ -57,6 +63,8 @@ def getDMspectrum(evals, option='e2', finalstate='b', mass=1000, channel=None, J
 	data = np.genfromtxt (filename, names = True ,dtype = None,comments='#')
 
 	massvals = data["mDM"]
+
+	print('mass:',mass,', J:',Jfactor,'\n')
 	
 
 	#index = np.where(np.abs( (massvals - mass) / mass) < 1.e-3)
@@ -222,17 +230,15 @@ def getDMspectrum(evals, option='e2', finalstate='b', mass=1000, channel=None, J
 
     #logxvalsnew = np.linspace(-8.9,0,10000)
     #xvalsnew = 10**logxvalsnew
-	print('evalsmin',np.min(evals),'evalsmax',np.max(evals))		
+	#print('evalsmin',np.min(evals),'evalsmax',np.max(evals))		
 	xvalsnew = evals/(mass*GeV)
-	print('xvalsmin',np.min(xvalsnew),'xvalsmax',np.max(xvalsnew))	
+	#print('xvalsmin',np.min(xvalsnew),'xvalsmax',np.max(xvalsnew))	
 	logxvalsnew = np.log10(xvalsnew)
-	print('logxmin',np.min(logxvalsnew),'logxmax',np.max(logxvalsnew))
+	#print('logxmin',np.min(logxvalsnew),'logxmax',np.max(logxvalsnew))
 
 	for i in range(len(evals)):
 		if logxvalsnew[i]>-8.9 and logxvalsnew[i]<0 :
 			x=xvalsnew[i]
-			if i==0:
-				print('\nx',x)
 			xvals2.append(x) #aportacion mia
 		
 			if finalstate == 'new':
@@ -470,7 +476,218 @@ def getDMspectrum(evals, option='e2', finalstate='b', mass=1000, channel=None, J
 		print('Option '+str(option)+' not supported')
 
 
+##------------------------------##
+##- Data from the 3FGL catalog -##
+##------------------------------##
 
+def nu(source):	#Source=Source_Name, t=complete catalog matrix
+	Fnu=['nuFnu100_300','nuFnu300_1000','nuFnu1000_3000','nuFnu3000_10000','nuFnu10000_100000']
+					#Spectral energy distribution (MeV)
+	F=['Flux100_300','Flux300_1000','Flux1000_3000','Flux3000_10000','Flux10000_100000']
+	Func=['Unc_Flux100_300','Unc_Flux300_1000','Unc_Flux1000_3000','Unc_Flux3000_10000','Unc_Flux10000_100000']
+	a,b=0,0
+	nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup=[],[],[],[],[],[]
+	while a<3034:	#3034 objects
+		if name[a]==source:
+			while b<len(F):
+				nuFnu.append(t[a][Fnu[b]])
+				flux.append(t[a][F[b]])
+				unc_fluxm.append(-t[a][Func[b]][0])
+				unc_fluxp.append(t[a][Func[b]][1])
+				unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				b=b+1
+		a=a+1
+	nuFnu     = np.array(nuFnu)
+	flux      = np.array(flux)
+	unc_fluxm = np.array(unc_fluxm)
+	unc_fluxp = np.array(unc_fluxp)
+	unc_num   = np.array(unc_num)
+	unc_nup   = np.array(unc_nup)
+	
+	i = np.isnan(unc_fluxm)
+	unc_fluxm[i] = 0
+	j = np.isnan(unc_num)
+	unc_num[j] = 0
+	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
+
+##-----------------##
+##- chi2 function -##
+##-----------------##
+
+def chi2(c) :			
+	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given
+
+	#mass    = c[1]
+	#Jboost  = c[0]
+	#Jfactor = Jboost*1.7e19
+
+	nuFnudm = getDMspectrum(evals, mass=mass, Jboost=Jboost)
+	#nuFnudm = np.array(Edm),np.array(nuFnudm)
+
+	i,c2=0,0
+	while i<len(E) :
+		index = np.argmin(np.abs(evals - E[i]))
+		delta = (nuFnu[i] - nuFnudm[index])
+		sigma = (unc_nup[i] + unc_num[i]) / 2
+		alpha = (unc_nup[i] - unc_num[i]) / 2
+		A     = (alpha / sigma)
+		chi   = (delta/sigma)**2 * (1 - 2*A*delta/sigma + 5*(A*delta/sigma)**2)
+		
+		c2    = c2 + chi
+		i=i+1
+
+	#print('\nmass',mass,'Jfactor',Jfactor,'chi2',c2)
+
+	return c2
+
+
+####################
+### Main program ###
+####################
+
+timei = dt.datetime.now()
+
+#chan = 'b'
+#m0   = 20     #GeV
+
+##----------------------------------##
+##- Chosen points from the catalog -##
+##----------------------------------##
+
+##Opening and closing the catalog
+list=fits.open('3FGL.fit')
+header=fits.getheader('3FGL.fit')
+data=fits.getdata('3FGL.fit')
+t=Table(data)
+list.close()
+
+##----------------------------##
+##- Definition of the xarray -##
+##----------------------------##
+
+evals = np.logspace(np.log10(6)-13,2,20000)
+
+##---------------------------------##
+##- Analysis of different sources -##
+##---------------------------------##
+
+##Creation of a document containing mass, Jfactor and chi2 of each source
+#data=open('fitdata.dat','w')
+
+
+
+#name[2502]=3FGL J1924.8-1034
+
+
+#Different sources
+
+a=0
+#a=2502
+#while a<2503 :		#test
+#while a<3034 :
+#while a<3 :
+
+#Different m0
+#b,m0=0,20
+
+#while b<1 :
+while a<4 :
+
+	##Source name
+	name=t[:]['Source_Name']
+	Source = name[a]
+	print('\n\n\n\n\n','-------',a,'-------','\n',Source)
+
+	##Spectral energy distribution##
+	#Ftot=t[:]['nuFnu300_1000']
+	#Ftot=np.array(Ftot)
+	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
+
+	E    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin = E-np.array([100,300,1000,3000,10000,])
+	Emax = np.array([300,1000,3000,10000,100000])-E
+	
+	E    = E*1e-6	#TeV
+	Emin = Emin*1e-6
+	Emax = Emax*1e-6
+	#evals= E
+	#logarithmic mid-point of the band
+
+	print('\nSpectral energy distribution',nuFnu)
+	print('\nError bars\n',unc_num,'\n',unc_nup)
+	print('\n\n')
+
+	##-------------##
+	##- Curve fit -##
+	##-------------##
+	
+	'''JM = Jm(chi2c)
+	mi = [m0]
+	X2, Jfactor, mass = result(chi2m)
+
+	#Jfactor  = 1.7e19
+	#mass     = 30
+	#mass2, X2 = massresult2(chi22)
+	print('\nMass result=',mass,'\nJfactor=',Jfactor,'\nchi2=',X2,'\n\nJ/m',JM)'''
+
+
+	s = (unc_num+unc_nup)/2
+	#print(s.shape)
+	popt, pcov=curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e2),])
+	mass    = popt[0]
+	Jboost  = popt[1]
+	merr    = sqrt(pcov[0][0])
+	Jerr    = sqrt(pcov[1][1])	
+	Jfactor = Jboost*1.7e19
+	Jferr   = Jerr*1.7e19
+
+	X2 = chi2(getDMspectrum)
+
+	#print('\npopt:',popt,'\nperr:',pcov)
+	print('mass:',mass,', J:',Jfactor,'\nmerr:',merr,', Jerr:',Jferr,', chi2:',X2)
+
+	#write=Source+' '+str(chan)+' '+str(mass)+' '+str(Jfactor)+' '+str(X2)+'\n'
+	#data.write(write)
+
+
+	#############
+	### plots ###
+	#############
+
+	fig=pl.figure(num=a)
+
+	comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
+		
+	ax=fig.add_subplot(111)
+	ax.set_yscale('log')
+	ax.set_xscale('log')
+	ax.set_xlim(1e-4, 0.1)
+	ax.set_ylim(5e-20,1e-10)
+	plt.suptitle(Source,fontsize=18)
+	ax.set_title(comment,fontsize=10)
+	ax.set_xlabel('$E$ [TeV]')
+	ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
+
+	ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup], fmt='--o', linewidth=1, label="data")
+
+
+	#(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
+	Fdm = getDMspectrum(evals, *popt)
+	ax.plot(evals, Fdm, label="fit", linewidth=1)
+	plt.legend(loc=3, prop={'size':12})	
+
+	time = dt.datetime.now()
+	print('\nTime:',time-timei)
+
+	#m0=m0+20
+	#b=b+1
+	a=a+1
+
+#data.close()
+
+
+'''
 ##-----------------##
 ##- Chosen points -##
 ##-----------------##
@@ -536,9 +753,8 @@ ax.plot(Edm, Fdm, label="m = 10 TeV", color='orange', linewidth=1)
 m=50000
 Fdm = getDMspectrum(Edm,'e2','new',m,'b')
 ax.plot(Edm, Fdm, label="m = 50 TeV", color='purple', linewidth=1)
-plt.legend(loc=3, prop={'size':12}) 
+plt.legend(loc=3, prop={'size':12}) '''
 
 
 	
 plt.show()
-
