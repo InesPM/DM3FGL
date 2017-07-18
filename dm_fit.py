@@ -2,7 +2,7 @@ import numpy as np
 from math import *
 from scipy.optimize import curve_fit
 from astropy.io import fits
-from astropy.table import Table
+from astropy.table import Table, Column
 import pylab as pl
 import scipy as sp
 import bisect
@@ -64,7 +64,7 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 	massvals = data["mDM"]
 
-	print('mass:',mass,', J:',Jfactor,'\n')
+	print(a,'- mass:',mass,', J:',Jfactor,'\n')
 	
 
 	#index = np.where(np.abs( (massvals - mass) / mass) < 1.e-3)
@@ -556,17 +556,25 @@ timei = dt.datetime.now()
 ##----------------------------------##
 
 ##Opening and closing the catalog
-list=fits.open('3FGL.fit')
-header=fits.getheader('3FGL.fit')
-data=fits.getdata('3FGL.fit')
-t=Table(data)
-list.close()
+hdulist = fits.open('3FGL.fit')
+header  = hdulist[1].header
+data    = hdulist[1].data
+t       = Table(data)
+hdulist.close()
 
-##----------------------------##
-##- Definition of the xarray -##
-##----------------------------##
+##---------------##
+##- Some arrays -##
+##---------------##
 
+#evals
 evals = np.logspace(np.log10(6)-13,2,20000)
+
+#new catalog parameters
+mass_a     = np.empty((3034,))
+unc_mass_a = np.empty((3034,))
+J_a        = np.empty((3034,))
+unc_J_a    = np.empty((3034,))
+chi2_a     = np.empty((3034,))
 
 ##---------------------------------##
 ##- Analysis of different sources -##
@@ -574,8 +582,6 @@ evals = np.logspace(np.log10(6)-13,2,20000)
 
 ##Creation of a document containing mass, Jfactor and chi2 of each source
 #data=open('fitdata.dat','w')
-
-
 
 #name[2502]=3FGL J1924.8-1034
 
@@ -585,14 +591,7 @@ evals = np.logspace(np.log10(6)-13,2,20000)
 a=0
 #a=2502
 #while a<2503 :		#test
-#while a<3034 :
-#while a<3 :
-
-#Different m0
-#b,m0=0,20
-
-#while b<1 :
-while a<4 :
+while a<3034 :
 
 	##Source name
 	name=t[:]['Source_Name']
@@ -622,16 +621,6 @@ while a<4 :
 	##- Curve fit -##
 	##-------------##
 	
-	'''JM = Jm(chi2c)
-	mi = [m0]
-	X2, Jfactor, mass = result(chi2m)
-
-	#Jfactor  = 1.7e19
-	#mass     = 30
-	#mass2, X2 = massresult2(chi22)
-	print('\nMass result=',mass,'\nJfactor=',Jfactor,'\nchi2=',X2,'\n\nJ/m',JM)'''
-
-
 	s = (unc_num+unc_nup)/2
 	#print(s.shape)
 	popt, pcov=curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e2),])
@@ -647,9 +636,11 @@ while a<4 :
 	#print('\npopt:',popt,'\nperr:',pcov)
 	print('mass:',mass,', J:',Jfactor,'\nmerr:',merr,', Jerr:',Jferr,', chi2:',X2)
 
-	#write=Source+' '+str(chan)+' '+str(mass)+' '+str(Jfactor)+' '+str(X2)+'\n'
-	#data.write(write)
-
+	mass_a[a]     = mass
+	unc_mass_a[a] = merr
+	J_a[a]        = Jfactor
+	unc_J_a[a]    = Jferr
+	chi2_a[a]     = X2
 
 	#############
 	### plots ###
@@ -680,81 +671,44 @@ while a<4 :
 	time = dt.datetime.now()
 	print('\nTime:',time-timei)
 
-	#m0=m0+20
-	#b=b+1
 	a=a+1
 
-#data.close()
+#plt.show()
 
 
+#####################
+### New fits file ###
+#####################
+
+##------------##
+##- Creation -##
+##------------##
+
+mass_c = Column(name = 'mass', data = mass_a, format = 'E')
+unc_mass_c = Column(name = 'unc_mass', data = unc_mass_a, format = 'E')
+J_c = Column(name = 'J_factor', data = J_a, format = 'E')
+unc_J_c = Column(name = 'unc_J_factor', data = unc_J_a, format = 'E')
+chi2_c = Column(name = 'chi_square', data = chi2_a, format = 'E')
+
+
+t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
+
+#print(t[0]['new'])
+
+t.write('new3FGL.fit', overwrite=True)
+
+##--------##
+##- Test -##
+##--------##
 '''
-##-----------------##
-##- Chosen points -##
-##-----------------##
+hdulist2 = fits.open('new3FGL.fit')
+header2 = hdulist[1].header
+data2 = hdulist2[1].data
+print(data2[1]['Source_Name'],type(data2[0]['Source_Name']))
+#print(hdulist2.info())
+print('mass from fits:', data2[2]['mass'])
+cols = hdulist2[1].columns
+#print(cols.info())
 
-#logxvalsnew = np.linspace(-8.9,0,10000)
-#xvals = np.logspace(1e-8.9,1,10000)
-evals = np.logspace(np.log10(6)-13,2,20000)
-
-
-
-##---------##
-##- Plots -##
-##---------##
-
-fig=pl.figure(figsize=(12,8))
-
-ax=fig.add_subplot(111)
-#ax=fig.add_subplot(221)
-ax.set_yscale('log')
-ax.set_xscale('log')
-#ax.set_xlim(1e-7, 1)
-#ax.set_ylim(1e-7,1e6)
-#ax.set_xlim(1e-5, 1)
-#ax.set_ylim(1e-2,1e3)
-ax.set_xlabel('$E$')
-ax.set_ylabel('$E^2dN/dx$')
-
-Edm = evals
-
-m=50
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-#print(len(Fdm),Fdm)
-ax.plot(Edm, Fdm, label="m = 0.05 TeV", color='red', linewidth=1)
-
-m=100
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 0.1 TeV", color='blue', linewidth=1)
-
-m=150
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 0.15 TeV", color='green', linewidth=1)
-
-m=250
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 0.2 TeV", color='pink', linewidth=1)
-
-m=500
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 0.5 TeV", color='#00CCFF', linewidth=1)
-
-m=1000
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 1 TeV", color='#FF66FF', linewidth=1)
-
-m=5000
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 5 TeV", color='#CC0066', linewidth=1)
-
-m=10000
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 10 TeV", color='orange', linewidth=1)
-
-m=50000
-Fdm = getDMspectrum(Edm,'e2','new',m,'b')
-ax.plot(Edm, Fdm, label="m = 50 TeV", color='purple', linewidth=1)
-plt.legend(loc=3, prop={'size':12}) '''
-
-
-	
-plt.show()
+hdulist2.close()
+'''
