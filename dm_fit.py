@@ -505,10 +505,12 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 	unc_num   = np.array(unc_num)
 	unc_nup   = np.array(unc_nup)
 	
+	'''
 	i = np.isnan(unc_fluxm)
 	unc_fluxm[i] = 0
 	j = np.isnan(unc_num)
 	unc_num[j] = 0
+	'''	
 	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
 
 ##-----------------##
@@ -599,19 +601,54 @@ while a<3034 :
 	print('\n\n\n\n\n','-------',a,'-------','\n',Source)
 
 	##Spectral energy distribution##
-	#Ftot=t[:]['nuFnu300_1000']
-	#Ftot=np.array(Ftot)
-	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
+	(nuFnu1,flux1,unc_fluxm1,unc_fluxp1,unc_num1,unc_nup1) = nu(Source)
 
-	E    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
-	Emin = E-np.array([100,300,1000,3000,10000,])
-	Emax = np.array([300,1000,3000,10000,100000])-E
+	index = np.array(np.isfinite(unc_num1))
+
+	#Energy bins definition 	
 	
-	E    = E*1e-6	#TeV
-	Emin = Emin*1e-6
-	Emax = Emax*1e-6
+	E1    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin1 = E1-np.array([100,300,1000,3000,10000,])
+	Emax1 = np.array([300,1000,3000,10000,100000])-E1
+	
+	E1    = E1*1e-6	#TeV
+	Emin1 = Emin1*1e-6
+	Emax1 = Emax1*1e-6
 	#evals= E
 	#logarithmic mid-point of the band
+
+	#We don't consider the bins where unc_num=nan, the source is not significant enough
+
+	i = 0
+	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
+	E = []; Emin = []; Emax = []
+	
+	while i<len(E1) :
+		if np.isnan(unc_num1[i]) == False :
+
+			nuFnu.append(nuFnu1[i])
+			flux.append(flux1[i])
+			unc_fluxm.append(unc_fluxm1[i])
+			unc_fluxp.append(unc_fluxp1[i])
+			unc_num.append(unc_num1[i])
+			unc_nup.append(unc_nup1[i])
+
+			E.append(E1[i])
+			Emin.append(Emin1[i])
+			Emax.append(Emax1[i])
+				
+		i = i+1 
+
+	nuFnu     = np.array(nuFnu)
+	flux      = np.array(flux)
+	unc_fluxm = np.array(unc_fluxm)
+	unc_fluxp = np.array(unc_fluxp)
+	unc_num   = np.array(unc_num)
+	unc_nup   = np.array(unc_nup)
+
+	E         = np.array(E)
+	Emin      = np.array(Emin)
+	Emax      = np.array(Emax)
 
 	print('\nSpectral energy distribution',nuFnu)
 	print('\nError bars\n',unc_num,'\n',unc_nup)
@@ -620,6 +657,7 @@ while a<3034 :
 	##-------------##
 	##- Curve fit -##
 	##-------------##
+	
 	
 	s = (unc_num+unc_nup)/2
 	#print(s.shape)
@@ -695,20 +733,28 @@ t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
 
 #print(t[0]['new'])
 
-t.write('new3FGL.fit', overwrite=True)
+t.write('2new3FGL.fit', overwrite=True)
 
 ##--------##
 ##- Test -##
 ##--------##
-'''
-hdulist2 = fits.open('new3FGL.fit')
+
+hdulist2 = fits.open('2new3FGL.fit')
 header2 = hdulist[1].header
 data2 = hdulist2[1].data
-print(data2[1]['Source_Name'],type(data2[0]['Source_Name']))
+#print(data2[1]['Source_Name'],type(data2[0]['Source_Name']))
 #print(hdulist2.info())
-print('mass from fits:', data2[2]['mass'])
-cols = hdulist2[1].columns
+#print('mass from fits:', data2[2]['mass'])
+#cols = hdulist2[1].columns
 #print(cols.info())
 
+#print('mass',data2[3]['mass'], 'J', data2[3]['J_factor'], 'chi2', data2[3]['chi_square'])
+#print('mass',data2[4]['mass'], 'J', data2[4]['J_factor'], 'chi2', data2[4]['chi_square'])
+#print('mass',data2[5]['mass'], 'J', data2[5]['J_factor'], 'chi2', data2[5]['chi_square'])
+
+datas = np.array(data)
+x = np.array(np.where(datas['chi_square']<0))
+print('It does not work in the folliwing indexes:',x, x.shape)
+
 hdulist2.close()
-'''
+
