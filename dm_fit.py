@@ -122,6 +122,7 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 				c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
 			else:
 				c_0_tau = 0
+
 			c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
 			br_t   = (c_0_top / c_0_T)
 			br_Z   = c_0_Z / c_0_T
@@ -564,6 +565,8 @@ data    = hdulist[1].data
 t       = Table(data)
 hdulist.close()
 
+f = open('2new3FGL.dat','a')
+
 ##---------------##
 ##- Some arrays -##
 ##---------------##
@@ -618,24 +621,25 @@ while a<3034 :
 	#logarithmic mid-point of the band
 
 	#We don't consider the bins where unc_num=nan, the source is not significant enough
+	#We don't consider the bins where unc_num=inf
 
 	i = 0
 	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
 	E = []; Emin = []; Emax = []
 	
 	while i<len(E1) :
-		if np.isnan(unc_num1[i]) == False :
+		if np.isnan(unc_num1[i]) == False :		
+			if np.isinf(unc_num1[i]) == False :
+				nuFnu.append(nuFnu1[i])
+				flux.append(flux1[i])
+				unc_fluxm.append(unc_fluxm1[i])
+				unc_fluxp.append(unc_fluxp1[i])
+				unc_num.append(unc_num1[i])
+				unc_nup.append(unc_nup1[i])
 
-			nuFnu.append(nuFnu1[i])
-			flux.append(flux1[i])
-			unc_fluxm.append(unc_fluxm1[i])
-			unc_fluxp.append(unc_fluxp1[i])
-			unc_num.append(unc_num1[i])
-			unc_nup.append(unc_nup1[i])
-
-			E.append(E1[i])
-			Emin.append(Emin1[i])
-			Emax.append(Emax1[i])
+				E.append(E1[i])
+				Emin.append(Emin1[i])
+				Emax.append(Emax1[i])
 				
 		i = i+1 
 
@@ -671,14 +675,16 @@ while a<3034 :
 
 	X2 = chi2(getDMspectrum)
 
-	#print('\npopt:',popt,'\nperr:',pcov)
-	print('mass:',mass,', J:',Jfactor,'\nmerr:',merr,', Jerr:',Jferr,', chi2:',X2)
-
 	mass_a[a]     = mass
 	unc_mass_a[a] = merr
 	J_a[a]        = Jfactor
 	unc_J_a[a]    = Jferr
 	chi2_a[a]     = X2
+
+	#print('\npopt:',popt,'\nperr:',pcov)
+	print('mass:',mass_a[a],', J:',J_a[a],'\nmerr:',unc_mass_a[a],', Jerr:',unc_J_a[a],', chi2:',chi2_a[a])
+
+	f.write(Source+' '+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2)+'\n')
 
 	#############
 	### plots ###
@@ -713,6 +719,7 @@ while a<3034 :
 
 #plt.show()
 
+f.close()
 
 #####################
 ### New fits file ###
@@ -733,13 +740,13 @@ t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
 
 #print(t[0]['new'])
 
-t.write('2new3FGL.fit', overwrite=True)
+t.write('3new3FGL.fit', overwrite=True)
 
 ##--------##
 ##- Test -##
 ##--------##
 
-hdulist2 = fits.open('2new3FGL.fit')
+hdulist2 = fits.open('3new3FGL.fit')
 header2 = hdulist[1].header
 data2 = hdulist2[1].data
 #print(data2[1]['Source_Name'],type(data2[0]['Source_Name']))
@@ -757,4 +764,3 @@ x = np.array(np.where(datas['chi_square']<0))
 print('It does not work in the folliwing indexes:',x, x.shape)
 
 hdulist2.close()
-
