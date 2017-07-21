@@ -122,7 +122,6 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 				c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
 			else:
 				c_0_tau = 0
-
 			c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
 			br_t   = (c_0_top / c_0_T)
 			br_Z   = c_0_Z / c_0_T
@@ -266,11 +265,11 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 
 	if option is 'e':
-        #if mass == 5000 and boost > 1:
+		'''#if mass == 5000 and boost > 1:
 		file1.write(str(x*mass*10**3+1) + " " + "1e-99" + "\n")
 		file1.write(str(x*mass*10**3+5) + " " + "1e-99" + "\n")
 		file1.write(str(x*mass*10**3+10) + " " + "1e-99" + "\n")
-		file1.close()
+		file1.close()'''
 		#return (evals,dNde)
 		return dNde
 	if option is 'e2':
@@ -284,197 +283,7 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 		return x2vdNdx
 	else:
 		print('Option '+str(option)+' not supported')
-		
-		
-    #Options:
-    #  e: outputs (E, dN/dE)
-    #  e2: outputs (E, E**2 dN/dE)
-    #  x: outputs (x,dN/dx)
-    # mass in GeV
-    # Jfactor in GeV2cm-5
-	sigmav=3*1e-26 # annihilation cross section in cm3s-1
-	data = np.genfromtxt (filename, names = True ,dtype = None,comments='#')
 
-	massvals = data["mDM"]
-	index = np.where(np.abs( (massvals - mass) / mass) < 0.045)
-	xvals = 10**(data["Log10x"][index])
-    #print(option,mass,'shape xvals',xvals.shape,end=' ')
-    
-	def branchingratios(m_branon): #<sigmav>_particle / <sigmav>_total
-    #PhysRevD.68.103505
-		m_top = 172.44
-		m_W = 80.4
-		m_Z = 91.2
-		m_h = 125.1
-		m_c = 1.275
-		m_b = 4.18
-		m_tau = 1.7768
-		if m_branon > m_top:
-			c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
-		else:
-			c_0_top = 0
-		if m_branon > m_Z:
-			c_0_Z = 1.0 / 64 * m_branon ** 2 * (1 - m_Z ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_Z ** 2 + 3 * m_Z ** 4)
-		else:
-			c_0_Z = 0
-		if m_branon > m_W:
-			c_0_W = 2.0 / 64 * m_branon ** 2 * (1 - m_W ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_W ** 2 + 3 * m_W ** 4)
-		else:
-			c_0_W = 0
-		if m_branon > m_h:
-			c_0_h = 1.0 / 64 * m_branon ** 2 * (2 * m_branon ** 2 + m_h ** 2) ** 2 * (1 - m_h ** 2 / m_branon ** 2) ** (1.0 / 2)
-		else:
-			c_0_h = 0
-		if m_branon > m_c:
-			c_0_c = 3.0 / 16 * m_branon ** 2 * m_c ** 2 * (m_branon ** 2 - m_c ** 2) * (1 - m_c ** 2 / m_branon ** 2) ** (1.0 / 2) 
-		else:
-			c_0_c = 0
-		if m_branon > m_b:
-			c_0_b = 3.0 / 16 * m_branon ** 2 * m_b ** 2 * (m_branon ** 2 - m_b ** 2) * (1 - m_b ** 2 / m_branon ** 2) ** (1.0 / 2) 
-		else:
-			c_0_b = 0
-		if m_branon > m_tau:
-			c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
-		else:
-			c_0_tau = 0
-		c_0_T = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
-		br_t = (c_0_top / c_0_T)
-		br_Z = c_0_Z / c_0_T
-		br_W = c_0_W / c_0_T
-		br_h = c_0_h / c_0_T
-		br_c = c_0_c / c_0_T
-		br_b = c_0_b / c_0_T
-		br_tau = c_0_tau / c_0_T
-        #f.append((c_0_T/(3*10**(-26)*math.pi**2))**(1./8))
-		return {'masas': m_branon, 't': br_t, 'Z': br_Z, 'W': br_W, 'h': br_h, 'c': br_c, 'b': br_b, 'Tau': br_tau}
-    
-    #tau name modified in AtProduction_Gammas.dat
-
-	if finalstate == "new":
-		di = branchingratios(mass)
-		flux_c = data[list(di.keys())[1]][index]/(np.log(10)*xvals) 
-		flux_tau = data[list(di.keys())[2]][index]/(np.log(10)*xvals) 
-		flux_b = data[list(di.keys())[3]][index]/(np.log(10)*xvals) 
-		flux_t = data[list(di.keys())[4]][index]/(np.log(10)*xvals) 
-		flux_W = data[list(di.keys())[5]][index]/(np.log(10)*xvals) 
-		flux_Z = data[list(di.keys())[7]][index]/(np.log(10)*xvals) 
-		flux_h = data[list(di.keys())[6]][index]/(np.log(10)*xvals) 
-		#print(' shape flux_h:',flux_h.shape)
-        
-		loadspec_h = interp1d(xvals,flux_h)
-		loadspec_Z = interp1d(xvals,flux_Z)
-		loadspec_t = interp1d(xvals,flux_t)
-		loadspec_W = interp1d(xvals,flux_W)
-		loadspec_b = interp1d(xvals,flux_b)
-		loadspec_c = interp1d(xvals,flux_c)
-		loadspec_tau = interp1d(xvals,flux_tau)
-		#print('shape xvals',xvals.shape)
-		#print('shape loadspec_h',loadspec_h.shape)
-	else:
-		flux = data[finalstate][index]/(np.log(10)*xvals) #data is given in dN/d(log10(X)) = x ln10 dN/dx
-        #flux = data[finalstate][index] 
-        
-		loadspec = interp1d(xvals,flux)
-
-	def dNdx(x):
-		fluxval = loadspec(x)
-		if (x>1 or fluxval<0):
-			return 0
-		else:
-			return fluxval
-        
-	def dNdx_new(x,di):
-		fluxval_h = loadspec_h(x)
-		if (x>1 or fluxval_h<0):
-			fluxval_h = 0
-        
-		fluxval_Z = loadspec_Z(x)
-		if (x>1 or fluxval_Z<0):
-			fluxval_Z = 0
-        
-		fluxval_t = loadspec_t(x)
-		if (x>1 or fluxval_t<0):
-			fluxval_t = 0
-        
-		fluxval_W = loadspec_W(x)
-		if (x>1 or fluxval_W<0):
-			fluxval_W = 0
-        
-		fluxval_b = loadspec_b(x)
-		if (x>1 or fluxval_b<0):
-			fluxval_b = 0
-        
-		fluxval_c = loadspec_c(x)
-		if (x>1 or fluxval_c<0):
-			fluxval_c = 0
-        
-		fluxval_tau = loadspec_tau(x)
-		if (x>1 or fluxval_tau<0):
-			fluxval_tau = 0
-		return (list(di.values())[1]*fluxval_c + list(di.values())[2]*fluxval_tau + 
-				list(di.values())[3]*fluxval_b + list(di.values())[4]*fluxval_t +
-				list(di.values())[5]*fluxval_W + list(di.values())[7]*fluxval_Z +
-				list(di.values())[6]*fluxval_h)
-
-	vdNdx = []
-	x2vdNdx = []
-	dNde = []
-	e2dNde = []
-	#evals = []
-	xvals2 = [] #aportacion mia
-	if  option is 'e': #and boost > 1:
-        #if mass == 5000:
-		sigmavboost = sigmav * boost #no era necesario
-		file1 = open("tabla"+str(mass)+str(finalstate)+str(sigmavboost)+".txt","w")
-
-    #logxvalsnew = np.linspace(-8.9,0,10000) Lo convertimos en xdata para hacer el ajuste
-	#xvalsnew = 10**logxvalsnew
-	#xvalsnew = evals/(mass*GeV)
-
-	for i in range(len(evals)):
-		if evals[i]<mass*GeV and evals[i]>mass*GeV*10**-8.9 :
-			x=evals[i]/(mass*GeV)
-			xvals2.append(x) #aportacion mia
-			if finalstate == 'new':
-				aux = dNdx_new(x,di)
-			else:
-				aux = dNdx(x)
-			vdNdx.append(aux)
-			x2vdNdx.append(x**2*aux)
-			dNdeaux = aux*Jfactor*GeV**2*sigmav*boost/(8*np.pi*(mass*GeV)**3)
-			dNde.append(dNdeaux)
-			e2dNde.append((1/erg)*x**2*aux*Jfactor*GeV**2*sigmav*boost/(8*np.pi*mass*GeV))
-        
-        
-			#evals.append(x*mass*GeV)
-			if option is 'e': #and boost > 1:
-				#if mass == 5000 and dNdeaux != 0:
-				if dNdeaux != 0:
-					file1.write(str(x*mass*10**3) + " " + str(dNdeaux/(10**6)) + "\n")
-		else :
-			vdNdx.append(0)
-			x2vdNdx.append(0)
-			dNde.append(0)
-			e2dNde.append(0)
-    
-	if option is 'e':
-		file1.write(str(x*mass*10**3+1) + " " + "1e-99" + "\n")
-		file1.write(str(x*mass*10**3+5) + " " + "1e-99" + "\n")
-		file1.write(str(x*mass*10**3+10) + " " + "1e-99" + "\n")
-		file1.close()
-		#return (evals,dNde)
-		return dNde
-	if option is 'e2':
-		#return (evals,e2dNde)
-		return e2dNde
-	if option is 'x':
-		#return (xvals2,vdNdx)
-		return vdNdx
-	if option is 'x2':
-		#return (xvals2,x2vdNdx)
-		return x2vdNdx
-	else:
-		print('Option '+str(option)+' not supported')
 
 
 ##------------------------------##
@@ -486,19 +295,43 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 					#Spectral energy distribution (MeV)
 	F=['Flux100_300','Flux300_1000','Flux1000_3000','Flux3000_10000','Flux10000_100000']
 	Func=['Unc_Flux100_300','Unc_Flux300_1000','Unc_Flux1000_3000','Unc_Flux3000_10000','Unc_Flux10000_100000']
+	
+	E1    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin1 = E1-np.array([100,300,1000,3000,10000,])
+	Emax1 = np.array([300,1000,3000,10000,100000])-E1
+	
+	E1    = E1*1e-6	#TeV
+	Emin1 = Emin1*1e-6
+	Emax1 = Emax1*1e-6
+	#evals= E
+	#logarithmic mid-point of the band
+	
 	a,b=0,0
-	nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup=[],[],[],[],[],[]
+
+	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
+	E = []; Emin = []; Emax = []
+
 	while a<3034:	#3034 objects
 		if name[a]==source:
 			while b<len(F):
-				nuFnu.append(t[a][Fnu[b]])
-				flux.append(t[a][F[b]])
-				unc_fluxm.append(-t[a][Func[b]][0])
-				unc_fluxp.append(t[a][Func[b]][1])
-				unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
-				unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				if np.isnan(-t[a][Func[b]][0]) == False :		
+					if np.isinf(-t[a][Func[b]][0]) == False :
+
+						nuFnu.append(t[a][Fnu[b]])
+						flux.append(t[a][F[b]])
+						unc_fluxm.append(-t[a][Func[b]][0])
+						unc_fluxp.append(t[a][Func[b]][1])
+						unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
+						unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+
+						E.append(E1[b])
+						Emin.append(Emin1[b])
+						Emax.append(Emax1[b])
+
+						
 				b=b+1
 		a=a+1
+
 	nuFnu     = np.array(nuFnu)
 	flux      = np.array(flux)
 	unc_fluxm = np.array(unc_fluxm)
@@ -506,13 +339,11 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 	unc_num   = np.array(unc_num)
 	unc_nup   = np.array(unc_nup)
 	
-	'''
-	i = np.isnan(unc_fluxm)
-	unc_fluxm[i] = 0
-	j = np.isnan(unc_num)
-	unc_num[j] = 0
-	'''	
-	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
+	E         = np.array(E)
+	Emin      = np.array(Emin)
+	Emax      = np.array(Emax)
+
+	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup, E, Emin, Emax)
 
 ##-----------------##
 ##- chi2 function -##
@@ -565,7 +396,8 @@ data    = hdulist[1].data
 t       = Table(data)
 hdulist.close()
 
-f = open('2new3FGL.dat','a')
+f = open('test3FGL.dat','a')
+g = open('2new3FGL.dat','a')
 
 ##---------------##
 ##- Some arrays -##
@@ -593,7 +425,7 @@ chi2_a     = np.empty((3034,))
 
 #Different sources
 
-a=0
+a=955
 #a=2502
 #while a<2503 :		#test
 while a<3034 :
@@ -604,55 +436,7 @@ while a<3034 :
 	print('\n\n\n\n\n','-------',a,'-------','\n',Source)
 
 	##Spectral energy distribution##
-	(nuFnu1,flux1,unc_fluxm1,unc_fluxp1,unc_num1,unc_nup1) = nu(Source)
-
-	index = np.array(np.isfinite(unc_num1))
-
-	#Energy bins definition 	
-	
-	E1    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
-	Emin1 = E1-np.array([100,300,1000,3000,10000,])
-	Emax1 = np.array([300,1000,3000,10000,100000])-E1
-	
-	E1    = E1*1e-6	#TeV
-	Emin1 = Emin1*1e-6
-	Emax1 = Emax1*1e-6
-	#evals= E
-	#logarithmic mid-point of the band
-
-	#We don't consider the bins where unc_num=nan, the source is not significant enough
-	#We don't consider the bins where unc_num=inf
-
-	i = 0
-	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
-	E = []; Emin = []; Emax = []
-	
-	while i<len(E1) :
-		if np.isnan(unc_num1[i]) == False :		
-			if np.isinf(unc_num1[i]) == False :
-				nuFnu.append(nuFnu1[i])
-				flux.append(flux1[i])
-				unc_fluxm.append(unc_fluxm1[i])
-				unc_fluxp.append(unc_fluxp1[i])
-				unc_num.append(unc_num1[i])
-				unc_nup.append(unc_nup1[i])
-
-				E.append(E1[i])
-				Emin.append(Emin1[i])
-				Emax.append(Emax1[i])
-				
-		i = i+1 
-
-	nuFnu     = np.array(nuFnu)
-	flux      = np.array(flux)
-	unc_fluxm = np.array(unc_fluxm)
-	unc_fluxp = np.array(unc_fluxp)
-	unc_num   = np.array(unc_num)
-	unc_nup   = np.array(unc_nup)
-
-	E         = np.array(E)
-	Emin      = np.array(Emin)
-	Emax      = np.array(Emax)
+	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
 
 	print('\nSpectral energy distribution',nuFnu)
 	print('\nError bars\n',unc_num,'\n',unc_nup)
@@ -662,55 +446,66 @@ while a<3034 :
 	##- Curve fit -##
 	##-------------##
 	
-	
-	s = (unc_num+unc_nup)/2
-	#print(s.shape)
-	popt, pcov=curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e2),])
-	mass    = popt[0]
-	Jboost  = popt[1]
-	merr    = sqrt(pcov[0][0])
-	Jerr    = sqrt(pcov[1][1])	
-	Jfactor = Jboost*1.7e19
-	Jferr   = Jerr*1.7e19
+	if len(nuFnu)>0 :
+		s = (unc_num+unc_nup)/2
+		#print(s.shape)
+		popt, pcov=curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e2),])
+		mass    = popt[0]
+		Jboost  = popt[1]
+		merr    = sqrt(pcov[0][0])
+		Jerr    = sqrt(pcov[1][1])	
+		Jfactor = Jboost*1.7e19
+		Jferr   = Jerr*1.7e19
 
-	X2 = chi2(getDMspectrum)
+		X2 = chi2(getDMspectrum)
 
+
+		#############
+		### plots ###
+		#############
+
+		fig=pl.figure(num=a)
+
+		comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
+		
+		ax=fig.add_subplot(111)
+		ax.set_yscale('log')
+		ax.set_xscale('log')
+		ax.set_xlim(1e-4, 0.1)
+		ax.set_ylim(5e-20,1e-10)
+		plt.suptitle(Source,fontsize=18)
+		ax.set_title(comment,fontsize=10)
+		ax.set_xlabel('$E$ [TeV]')
+		ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
+
+		ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup], fmt='--o', linewidth=1, label="data")
+
+
+		#(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
+		Fdm = getDMspectrum(evals, *popt)
+		ax.plot(evals, Fdm, label="fit", linewidth=1)
+		plt.legend(loc=3, prop={'size':12})	
+
+	else :
+		mass    = 0
+		merr    = 0
+		Jfactor = 0
+		Jferr   = 0
+
+		X2      = inf
+
+		print('Not fittable')
+		
 	mass_a[a]     = mass
 	unc_mass_a[a] = merr
 	J_a[a]        = Jfactor
 	unc_J_a[a]    = Jferr
 	chi2_a[a]     = X2
 
-	#print('\npopt:',popt,'\nperr:',pcov)
 	print('mass:',mass_a[a],', J:',J_a[a],'\nmerr:',unc_mass_a[a],', Jerr:',unc_J_a[a],', chi2:',chi2_a[a])
 
 	f.write(Source+' '+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2)+'\n')
-
-	#############
-	### plots ###
-	#############
-
-	fig=pl.figure(num=a)
-
-	comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
-		
-	ax=fig.add_subplot(111)
-	ax.set_yscale('log')
-	ax.set_xscale('log')
-	ax.set_xlim(1e-4, 0.1)
-	ax.set_ylim(5e-20,1e-10)
-	plt.suptitle(Source,fontsize=18)
-	ax.set_title(comment,fontsize=10)
-	ax.set_xlabel('$E$ [TeV]')
-	ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
-
-	ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup], fmt='--o', linewidth=1, label="data")
-
-
-	#(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
-	Fdm = getDMspectrum(evals, *popt)
-	ax.plot(evals, Fdm, label="fit", linewidth=1)
-	plt.legend(loc=3, prop={'size':12})	
+	g.write(Source+' '+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2)+'\n')
 
 	time = dt.datetime.now()
 	print('\nTime:',time-timei)
@@ -720,6 +515,7 @@ while a<3034 :
 #plt.show()
 
 f.close()
+g.close()
 
 #####################
 ### New fits file ###
@@ -739,7 +535,7 @@ chi2_c = Column(name = 'chi_square', data = chi2_a, format = 'E')
 t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
 
 #print(t[0]['new'])
-
+'''
 t.write('3new3FGL.fit', overwrite=True)
 
 ##--------##
@@ -764,3 +560,4 @@ x = np.array(np.where(datas['chi_square']<0))
 print('It does not work in the folliwing indexes:',x, x.shape)
 
 hdulist2.close()
+'''
