@@ -3,9 +3,8 @@ from math import *
 from astropy.io import fits
 from astropy.table import Table, Column
 import pylab as pl
-import scipy as sp
-import bisect
-import scipy.optimize as opt
+#import scipy as sp
+from scipy.stats import chi2
 from matplotlib import pyplot as plt
 import datetime as dt
 
@@ -77,29 +76,28 @@ hdulist = fits.open('b3FGL.fit')
 header  = hdulist[1].header
 data    = hdulist[1].data
 t       = Table(data)
+hdulist.close()
 
 datas    = np.array(data)
 name     = np.array(data[:]['Source_Name'])
+chisq    = np.array(data[:]['chi_square'])
 
 a=0
 x=[]
 while a<3034 :
-	if data[a]['chi_square'] <1 :
-		x.append(data[a]['chi_square'])
+	Source = name[a]
+	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
+	X2 = float(chisq[a])
+	#print('X2', X2, type(X2))
+	df = len(nuFnu)-1
+	#print('df', df, type(df))			#degrees of freedom
+
+	#P>0.99
+	#P = chi2.sf(X2,df)
+	if chi2.sf(X2,df)>0.995 and len(nuFnu)>2:
+		x.append(Source)
+		print(len(nuFnu), Source)
 
 	a=a+1	
 x = np.array(x)
-index = np.argmin(datas['chi_square'])
-#print('chi2<1 :',len(x),'times',index)
-print('mass',data[index]['mass'], 'J', data[index]['J_factor'], 'chi2', data[index]['chi_square'])
-
-
-Source = name[index]
-(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
-print(Source)
-print('\nSpectral energy distribution',nuFnu)
-print('\nError bars\n',unc_num,'\n',unc_nup)
-
-
-hdulist.close()
-
+print('youpiiii:',len(x))
