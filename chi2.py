@@ -6,6 +6,7 @@ import pylab as pl
 import scipy as sp
 import bisect
 import scipy.optimize as opt
+from scipy.stats import chi2
 from matplotlib import pyplot as plt
 import datetime as dt
 
@@ -77,29 +78,37 @@ hdulist = fits.open('b3FGL.fit')
 header  = hdulist[1].header
 data    = hdulist[1].data
 t       = Table(data)
+hdulist.close()
 
 datas    = np.array(data)
 name     = np.array(data[:]['Source_Name'])
+chi2     = np.array(data[:]['chi_square'])
 
 a=0
 x=[]
 while a<3034 :
-	if data[a]['chi_square'] <1 :
-		x.append(data[a]['chi_square'])
+	Source = name[a]
+	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
+
+	df = len(nuFnu)-1			#degrees of freedom
+
+	#P>0.99
+	if df == 1:
+		if chi2[a]<1e-4:
+			x.append(name)
+	elif df == 2:
+		if chi2[a]<2.01e-2:
+			x.append(name)
+	elif df == 3:
+		if chi2[a]<0.1148:
+			x.append(name)
+	elif df == 4:
+		if chi2[a]<0.2971:
+			x.append(name)
+
+	#if data[a]['chi_square'] <1 :
+	#	x.append(data[a]['chi_square'])
 
 	a=a+1	
 x = np.array(x)
-index = np.argmin(datas['chi_square'])
-#print('chi2<1 :',len(x),'times',index)
-print('mass',data[index]['mass'], 'J', data[index]['J_factor'], 'chi2', data[index]['chi_square'])
-
-
-Source = name[index]
-(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
-print(Source)
-print('\nSpectral energy distribution',nuFnu)
-print('\nError bars\n',unc_num,'\n',unc_nup)
-
-
-hdulist.close()
-
+print('youpiiii:',len(x))
