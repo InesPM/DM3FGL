@@ -16,25 +16,58 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 					#Spectral energy distribution (MeV)
 	F=['Flux100_300','Flux300_1000','Flux1000_3000','Flux3000_10000','Flux10000_100000']
 	Func=['Unc_Flux100_300','Unc_Flux300_1000','Unc_Flux1000_3000','Unc_Flux3000_10000','Unc_Flux10000_100000']
+	
+	E1    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin1 = E1-np.array([100,300,1000,3000,10000,])
+	Emax1 = np.array([300,1000,3000,10000,100000])-E1
+	
+	E1    = E1*1e-6	#TeV
+	Emin1 = Emin1*1e-6
+	Emax1 = Emax1*1e-6
+	#evals= E
+	#logarithmic mid-point of the band
+	
 	a,b=0,0
-	nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup=[],[],[],[],[],[]
+
+	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
+	E = []; Emin = []; Emax = []
+
 	while a<3034:	#3034 objects
 		if name[a]==source:
 			while b<len(F):
-				nuFnu.append(t[a][Fnu[b]])
-				flux.append(t[a][F[b]])
-				unc_fluxm.append(-t[a][Func[b]][0])
-				unc_fluxp.append(t[a][Func[b]][1])
-				unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
-				unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
-				#unc_nu=unc_flux*nuFnu/flux
+				if np.isnan(-t[a][Func[b]][0]) == False :		
+					if np.isinf(-t[a][Func[b]][0]) == False :
+
+						nuFnu.append(t[a][Fnu[b]])
+						flux.append(t[a][F[b]])
+						unc_fluxm.append(-t[a][Func[b]][0])
+						unc_fluxp.append(t[a][Func[b]][1])
+						unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
+						unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+
+						E.append(E1[b])
+						Emin.append(Emin1[b])
+						Emax.append(Emax1[b])
+
+						
 				b=b+1
 		a=a+1
-	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
+
+	nuFnu     = np.array(nuFnu)
+	flux      = np.array(flux)
+	unc_fluxm = np.array(unc_fluxm)
+	unc_fluxp = np.array(unc_fluxp)
+	unc_num   = np.array(unc_num)
+	unc_nup   = np.array(unc_nup)
 	
+	E         = np.array(E)
+	Emin      = np.array(Emin)
+	Emax      = np.array(Emax)
+
+	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup, E, Emin, Emax)
 	
 
-##Apertura y cierre del catálogo##
+##Apertura y cierre del catÃ¡logo##
 list=fits.open('3FGL.fit')
 header=fits.getheader('3FGL.fit')
 data=fits.getdata('3FGL.fit')
@@ -47,10 +80,10 @@ list.close()
 ##Nombre de la fuente##
 name=t[:]['Source_Name']
 name=np.array(name)
-Source = name[300]
+Source = name[8]
 print(Source)
 
-##Flujo diferencial de energía 'nuFnu300_1000'##
+##Flujo diferencial de energÃ­a 'nuFnu300_1000'##
 nuFnu=t[:]['nuFnu300_1000']
 nuFnu=np.array(nuFnu)
 print(nuFnu)
@@ -60,7 +93,7 @@ print(nuFnu)
 E=np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])
 #Logarithmic mid-point slope
 
-#print('flujo diferencial a diferentes energías:',nu(Source))
+#print('flujo diferencial a diferentes energÃ­as:',nu(Source))
 
 fig=pl.figure()
 
@@ -75,7 +108,7 @@ ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
 
 print('cosa',unc_fluxm)
 #ax.plot(E,flux,'g+',E,unc_flux,'cx')
-ax.errorbar(E, nuFnu, yerr=[unc_num,unc_nup],fmt='--o')
+ax.errorbar(E, nuFnu, yerr=[unc_num,unc_nup],fmt='--o',lw=1)
 #ax.plot(E, nuFnu, 'g+')
 
 
