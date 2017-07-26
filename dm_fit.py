@@ -49,8 +49,7 @@ eV  = 1e-9 * GeV
 
 def getDMspectrum(evals, mass=1000, Jboost=1):
 	option     = 'e2'
-	finalstate = 'b'
-	channel    = None
+	finalstate = 'new'
 	boost      = 1
 	Jfactor    = Jboost*1.7e19
 	#Options:
@@ -64,21 +63,12 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 	massvals = data["mDM"]
 
-	print(a,'- mass:',mass,', J:',Jfactor,'\n')
-	
-
-	#index = np.where(np.abs( (massvals - mass) / mass) < 1.e-3)
-	#xvals = 10**(data["Log10x"][index])
-	#print(option,mass,'shape xvals',xvals.shape,end=' ')
-   
+	print(a,'- mass:',mass,', J:',Jfactor,'\n')   
 	
 	if (mass < np.max(massvals) and mass > np.min(massvals)) :
-		#print('min=',np.min(massvals),'max=',np.max(massvals))
 		min = np.min(np.abs( (massvals - mass) /mass))
 		index = np.where(np.abs( (massvals - mass) /mass) == min)
-		#print('index',index)
 		xvals = 10**(data["Log10x"][index])
-		#print(option,mass,'shape xvals',xvals.shape,end=' ')
 	else :
 		print('\nError: mass out of range\n')
         
@@ -93,59 +83,44 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 		m_c   = 1.275
 		m_b   = 4.18
 		m_tau = 1.7768
-		if channel == None:
-			if m_branon > m_top:
-				c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
-			else:
-				c_0_top = 0
-			if m_branon > m_Z:
-				c_0_Z = 1.0 / 64 * m_branon ** 2 * (1 - m_Z ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_Z ** 2 + 3 * m_Z ** 4)
-			else:
-				c_0_Z = 0
-			if m_branon > m_W:
-				c_0_W = 2.0 / 64 * m_branon ** 2 * (1 - m_W ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_W ** 2 + 3 * m_W ** 4)
-			else:
-				c_0_W = 0
-			if m_branon > m_h:
-				c_0_h = 1.0 / 64 * m_branon ** 2 * (2 * m_branon ** 2 + m_h ** 2) ** 2 * (1 - m_h ** 2 / m_branon ** 2) ** (1.0 / 2)
-			else:
-				c_0_h = 0
-			if m_branon > m_c:
-				c_0_c = 3.0 / 16 * m_branon ** 2 * m_c ** 2 * (m_branon ** 2 - m_c ** 2) * (1 - m_c ** 2 / m_branon ** 2) ** (1.0 / 2) 
-			else:
-				c_0_c = 0
-			if m_branon > m_b:
-				c_0_b = 3.0 / 16 * m_branon ** 2 * m_b ** 2 * (m_branon ** 2 - m_b ** 2) * (1 - m_b ** 2 / m_branon ** 2) ** (1.0 / 2) 
-			else:
-				c_0_b = 0
-			if m_branon > m_tau:
-				c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
-			else:
-				c_0_tau = 0
-			c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
-			br_t   = (c_0_top / c_0_T)
-			br_Z   = c_0_Z / c_0_T
-			br_W   = c_0_W / c_0_T
-			br_h   = c_0_h / c_0_T
-			br_c   = c_0_c / c_0_T
-			br_b   = c_0_b / c_0_T
-			br_tau = c_0_tau / c_0_T
-			#f.append((c_0_T/(3*10**(-26)*math.pi**2))**(1./8))
+		#if channel == None:
+		if m_branon > m_top:
+			c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
 		else:
-			if channel == 't':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=1,0,0,0,0,0,0
-			if channel == 'Z':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,1,0,0,0,0,0
-			if channel == 'W':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,1,0,0,0,0
-			if channel == 'h':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,1,0,0,0
-			if channel == 'c':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,1,0,0
-			if channel == 'b':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,0,1,0
-			if channel == 'tau':
-				br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,0,0,1
+			c_0_top = 0
+		if m_branon > m_Z:
+			c_0_Z = 1.0 / 64 * m_branon ** 2 * (1 - m_Z ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_Z ** 2 + 3 * m_Z ** 4)
+		else:
+			c_0_Z = 0
+		if m_branon > m_W:
+			c_0_W = 2.0 / 64 * m_branon ** 2 * (1 - m_W ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_W ** 2 + 3 * m_W ** 4)
+		else:
+			c_0_W = 0
+		if m_branon > m_h:
+			c_0_h = 1.0 / 64 * m_branon ** 2 * (2 * m_branon ** 2 + m_h ** 2) ** 2 * (1 - m_h ** 2 / m_branon ** 2) ** (1.0 / 2)
+		else:
+			c_0_h = 0
+		if m_branon > m_c:
+			c_0_c = 3.0 / 16 * m_branon ** 2 * m_c ** 2 * (m_branon ** 2 - m_c ** 2) * (1 - m_c ** 2 / m_branon ** 2) ** (1.0 / 2) 
+		else:
+			c_0_c = 0
+		if m_branon > m_b:
+			c_0_b = 3.0 / 16 * m_branon ** 2 * m_b ** 2 * (m_branon ** 2 - m_b ** 2) * (1 - m_b ** 2 / m_branon ** 2) ** (1.0 / 2) 
+		else:
+			c_0_b = 0
+		if m_branon > m_tau:
+			c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
+		else:
+			c_0_tau = 0
+		c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
+		br_t   = (c_0_top / c_0_T)
+		br_Z   = c_0_Z / c_0_T
+		br_W   = c_0_W / c_0_T
+		br_h   = c_0_h / c_0_T
+		br_c   = c_0_c / c_0_T
+		br_b   = c_0_b / c_0_T
+		br_tau = c_0_tau / c_0_T
+
 		return {'masas': m_branon, 't': br_t, 'Z': br_Z, 'W': br_W, 'h': br_h, 'c': br_c, 'b': br_b, 'Tau': br_tau}	
         
     
@@ -161,8 +136,6 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 		flux_Z   = data[list(di.keys())[7]][index]/(np.log(10)*xvals) 
 		flux_h   = data[list(di.keys())[6]][index]/(np.log(10)*xvals) 
 
-		print(' shape flux_h:',flux_h.shape,)
-		print(' shape xvals :',xvals.shape,'min',np.min(xvals),'max',np.max(xvals))
       
 		loadspec_h   = interp1d(xvals,flux_h)
 		loadspec_Z   = interp1d(xvals,flux_Z)
@@ -174,7 +147,6 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 	else:
 		flux = data[finalstate][index]/(np.log(10)*xvals) #data is given in dN/d(log10(X)) = x ln10 dN/dx
-		#flux = data[finalstate][index] 
 		loadspec = interp1d(xvals,flux)
 
 	def dNdx(x):
@@ -221,20 +193,14 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 	x2vdNdx = []
 	dNde = []
 	e2dNde = []
-	#evals = []
-	xvals2 = [] #aportacion mia
+	xvals2 = []
 	if  option is 'e': #and boost > 1:
 		#if mass == 5000:
 		sigmavboost = sigmav * boost #no era necesario
 		file1 = open("tabla"+str(mass)+str(finalstate)+str(sigmavboost)+".txt","w")
-
-    #logxvalsnew = np.linspace(-8.9,0,10000)
-    #xvalsnew = 10**logxvalsnew
-	#print('evalsmin',np.min(evals),'evalsmax',np.max(evals))		
+		
 	xvalsnew = evals/(mass*GeV)
-	#print('xvalsmin',np.min(xvalsnew),'xvalsmax',np.max(xvalsnew))	
 	logxvalsnew = np.log10(xvalsnew)
-	#print('logxmin',np.min(logxvalsnew),'logxmax',np.max(logxvalsnew))
 
 	for i in range(len(evals)):
 		if logxvalsnew[i]>-8.9 and logxvalsnew[i]<0 :
@@ -250,8 +216,6 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 			dNdeaux = aux*Jfactor*GeV**2*sigmav*boost/(8*np.pi*(mass*GeV)**3)
 			dNde.append(dNdeaux)
 			e2dNde.append((1/erg)*x**2*aux*Jfactor*GeV**2*sigmav*boost/(8*np.pi*mass*GeV))
-        
-			#evals.append(x*mass*GeV)
 		
 			if option is 'e': #and boost > 1:
 				#if mass == 5000 and dNdeaux != 0:
@@ -265,21 +229,12 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 
 	if option is 'e':
-		'''#if mass == 5000 and boost > 1:
-		file1.write(str(x*mass*10**3+1) + " " + "1e-99" + "\n")
-		file1.write(str(x*mass*10**3+5) + " " + "1e-99" + "\n")
-		file1.write(str(x*mass*10**3+10) + " " + "1e-99" + "\n")
-		file1.close()'''
-		#return (evals,dNde)
 		return dNde
 	if option is 'e2':
-		#return (evals,e2dNde)
 		return e2dNde
 	if option is 'x':
-		#return (xvals2,vdNdx)
 		return vdNdx
 	if option is 'x2':
-		#return (xvals2,x2vdNdx)
 		return x2vdNdx
 	else:
 		print('Option '+str(option)+' not supported')
@@ -352,12 +307,7 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 def chi2(c) :			
 	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given
 
-	#mass    = c[1]
-	#Jboost  = c[0]
-	#Jfactor = Jboost*1.7e19
-
 	nuFnudm = getDMspectrum(evals, mass=mass, Jboost=Jboost)
-	#nuFnudm = np.array(Edm),np.array(nuFnudm)
 
 	i,c2=0,0
 	while i<len(E) :
@@ -371,8 +321,6 @@ def chi2(c) :
 		c2    = c2 + chi
 		i=i+1
 
-	#print('\nmass',mass,'Jfactor',Jfactor,'chi2',c2)
-
 	return c2
 
 
@@ -381,9 +329,6 @@ def chi2(c) :
 ####################
 
 timei = dt.datetime.now()
-
-#chan = 'b'
-#m0   = 20     #GeV
 
 ##----------------------------------##
 ##- Chosen points from the catalog -##
@@ -396,6 +341,7 @@ data    = hdulist[1].data
 t       = Table(data)
 hdulist.close()
 
+##Creation of a document containing mass, Jfactor and chi2 of each source
 f = open('test3FGL.dat','a')
 g = open('new3FGL.dat','a')
 
@@ -403,10 +349,10 @@ g = open('new3FGL.dat','a')
 ##- Some arrays -##
 ##---------------##
 
-#evals
+##evals
 evals = np.logspace(np.log10(6)-13,2,20000)
 
-#new catalog parameters
+##new catalog parameters
 mass_a     = np.empty((3034,))
 unc_mass_a = np.empty((3034,))
 J_a        = np.empty((3034,))
@@ -417,17 +363,7 @@ chi2_a     = np.empty((3034,))
 ##- Analysis of different sources -##
 ##---------------------------------##
 
-##Creation of a document containing mass, Jfactor and chi2 of each source
-#data=open('fitdata.dat','w')
-
-#name[2502]=3FGL J1924.8-1034
-
-
-#Different sources
-
-a=955
-#a=2502
-#while a<2503 :		#test
+a=0
 while a<3034 :
 
 	##Source name
@@ -449,7 +385,7 @@ while a<3034 :
 	if len(nuFnu)>0 :
 		s = (unc_num+unc_nup)/2
 		#print(s.shape)
-		popt, pcov=curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e2),])
+		popt, pcov = curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e3),])
 		mass    = popt[0]
 		Jboost  = popt[1]
 		merr    = sqrt(pcov[0][0])
@@ -459,11 +395,11 @@ while a<3034 :
 
 		X2 = chi2(getDMspectrum)
 
-		'''
+
 		#############
 		### plots ###
 		#############
-
+		'''
 		fig=pl.figure(num=a)
 
 		comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
@@ -533,6 +469,5 @@ chi2_c = Column(name = 'chi_square', data = chi2_a, format = 'E')
 
 
 t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
-
 
 t.write('new3FGL.fit', overwrite=True)
