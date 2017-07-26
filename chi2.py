@@ -390,7 +390,7 @@ while a<3034 :
 		
 		fig=pl.figure(num=a)
 
-		comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
+		comment = 'mass = $%.2f\pm%.2f$ GeV, J = $%.2e\pm%.2e$, $\chi^2 = %.4e$' % (mass,merr,Jfactor,Jferr,X2)
 		
 		ax=fig.add_subplot(111)
 		ax.set_yscale('log')
