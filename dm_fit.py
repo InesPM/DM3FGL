@@ -397,7 +397,7 @@ t       = Table(data)
 hdulist.close()
 
 f = open('test3FGL.dat','a')
-g = open('2new3FGL.dat','a')
+g = open('new3FGL.dat','a')
 
 ##---------------##
 ##- Some arrays -##
@@ -459,7 +459,7 @@ while a<3034 :
 
 		X2 = chi2(getDMspectrum)
 
-
+		'''
 		#############
 		### plots ###
 		#############
@@ -485,7 +485,7 @@ while a<3034 :
 		Fdm = getDMspectrum(evals, *popt)
 		ax.plot(evals, Fdm, label="fit", linewidth=1)
 		plt.legend(loc=3, prop={'size':12})	
-
+		'''
 	else :
 		mass    = 0
 		merr    = 0
@@ -534,30 +534,5 @@ chi2_c = Column(name = 'chi_square', data = chi2_a, format = 'E')
 
 t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
 
-#print(t[0]['new'])
-'''
-t.write('3new3FGL.fit', overwrite=True)
 
-##--------##
-##- Test -##
-##--------##
-
-hdulist2 = fits.open('3new3FGL.fit')
-header2 = hdulist[1].header
-data2 = hdulist2[1].data
-#print(data2[1]['Source_Name'],type(data2[0]['Source_Name']))
-#print(hdulist2.info())
-#print('mass from fits:', data2[2]['mass'])
-#cols = hdulist2[1].columns
-#print(cols.info())
-
-#print('mass',data2[3]['mass'], 'J', data2[3]['J_factor'], 'chi2', data2[3]['chi_square'])
-#print('mass',data2[4]['mass'], 'J', data2[4]['J_factor'], 'chi2', data2[4]['chi_square'])
-#print('mass',data2[5]['mass'], 'J', data2[5]['J_factor'], 'chi2', data2[5]['chi_square'])
-
-datas = np.array(data)
-x = np.array(np.where(datas['chi_square']<0))
-print('It does not work in the folliwing indexes:',x, x.shape)
-
-hdulist2.close()
-'''
+t.write('new3FGL.fit', overwrite=True)
