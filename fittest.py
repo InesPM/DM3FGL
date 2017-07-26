@@ -40,13 +40,15 @@ MeV = 1e-6 * TeV
 erg = 0.624151 * TeV 
 eV  = 1e-9 * GeV
 
-###############
-###Functions###
-###############
+#################
+### Functions ###
+#################
 
-'''Generation of the DM spectrum'''
+##---------------------------------##
+##- Generation of the DM spectrum -##
+##---------------------------------##
 
-def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e19,boost=1):
+def getDMspectrum(option='e',finalstate='b',mass=1000,Jfactor=1.7e19,boost=1):
     #Options:
     #  e: outputs (E, dN/dE)
     #  e2: outputs (E, E**2 dN/dE)
@@ -57,20 +59,12 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
     data = np.genfromtxt (filename, names = True ,dtype = None,comments='#')
 
     massvals = data["mDM"]
-	
-
-    #index = np.where(np.abs( (massvals - mass) / mass) < 1.e-3)
-    #xvals = 10**(data["Log10x"][index])
-    #print(option,mass,'shape xvals',xvals.shape,end=' ')
     
 	
     if (mass < np.max(massvals) and mass > np.min(massvals)) :
-        #print('min=',np.min(massvals),'max=',np.max(massvals))
         min = np.min(np.abs( (massvals - mass) /mass))
         index = np.where(np.abs( (massvals - mass) /mass) == min)
-        #print('index',index)
         xvals = 10**(data["Log10x"][index])
-        #print(option,mass,'shape xvals',xvals.shape,end=' ')
     else :
         print('\nError: mass out of range\n')
         
@@ -85,59 +79,42 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
         m_c   = 1.275
         m_b   = 4.18
         m_tau = 1.7768
-        if channel == None:
-            if m_branon > m_top:
-                c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
-            else:
-                c_0_top = 0
-            if m_branon > m_Z:
-                c_0_Z = 1.0 / 64 * m_branon ** 2 * (1 - m_Z ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_Z ** 2 + 3 * m_Z ** 4)
-            else:
-                c_0_Z = 0
-            if m_branon > m_W:
-                c_0_W = 2.0 / 64 * m_branon ** 2 * (1 - m_W ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_W ** 2 + 3 * m_W ** 4)
-            else:
-                c_0_W = 0
-            if m_branon > m_h:
-                c_0_h = 1.0 / 64 * m_branon ** 2 * (2 * m_branon ** 2 + m_h ** 2) ** 2 * (1 - m_h ** 2 / m_branon ** 2) ** (1.0 / 2)
-            else:
-                c_0_h = 0
-            if m_branon > m_c:
-                c_0_c = 3.0 / 16 * m_branon ** 2 * m_c ** 2 * (m_branon ** 2 - m_c ** 2) * (1 - m_c ** 2 / m_branon ** 2) ** (1.0 / 2) 
-            else:
-                c_0_c = 0
-            if m_branon > m_b:
-                c_0_b = 3.0 / 16 * m_branon ** 2 * m_b ** 2 * (m_branon ** 2 - m_b ** 2) * (1 - m_b ** 2 / m_branon ** 2) ** (1.0 / 2) 
-            else:
-                c_0_b = 0
-            if m_branon > m_tau:
-                c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
-            else:
-                c_0_tau = 0
-            c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
-            br_t   = (c_0_top / c_0_T)
-            br_Z   = c_0_Z / c_0_T
-            br_W   = c_0_W / c_0_T
-            br_h   = c_0_h / c_0_T
-            br_c   = c_0_c / c_0_T
-            br_b   = c_0_b / c_0_T
-            br_tau = c_0_tau / c_0_T
-            #f.append((c_0_T/(3*10**(-26)*math.pi**2))**(1./8))
+        if m_branon > m_top:
+            c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
         else:
-            if channel == 't':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=1,0,0,0,0,0,0
-            if channel == 'Z':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,1,0,0,0,0,0
-            if channel == 'W':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,1,0,0,0,0
-            if channel == 'h':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,1,0,0,0
-            if channel == 'c':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,1,0,0
-            if channel == 'b':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,0,1,0
-            if channel == 'tau':
-                br_t,br_Z,br_W,br_h,br_c,br_b,br_tau=0,0,0,0,0,0,1
+            c_0_top = 0
+        if m_branon > m_Z:
+            c_0_Z = 1.0 / 64 * m_branon ** 2 * (1 - m_Z ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_Z ** 2 + 3 * m_Z ** 4)
+        else:
+            c_0_Z = 0
+        if m_branon > m_W:
+            c_0_W = 2.0 / 64 * m_branon ** 2 * (1 - m_W ** 2 / m_branon ** 2) ** (1.0 / 2) * (4 * m_branon ** 4 - 4 * m_branon ** 2 * m_W ** 2 + 3 * m_W ** 4)
+        else:
+            c_0_W = 0
+        if m_branon > m_h:
+            c_0_h = 1.0 / 64 * m_branon ** 2 * (2 * m_branon ** 2 + m_h ** 2) ** 2 * (1 - m_h ** 2 / m_branon ** 2) ** (1.0 / 2)
+        else:
+            c_0_h = 0
+        if m_branon > m_c:
+            c_0_c = 3.0 / 16 * m_branon ** 2 * m_c ** 2 * (m_branon ** 2 - m_c ** 2) * (1 - m_c ** 2 / m_branon ** 2) ** (1.0 / 2) 
+        else:
+            c_0_c = 0
+        if m_branon > m_b:
+            c_0_b = 3.0 / 16 * m_branon ** 2 * m_b ** 2 * (m_branon ** 2 - m_b ** 2) * (1 - m_b ** 2 / m_branon ** 2) ** (1.0 / 2) 
+        else:
+            c_0_b = 0
+        if m_branon > m_tau:
+            c_0_tau = 1.0 / 16 * m_branon ** 2 * m_tau ** 2 * (m_branon ** 2 - m_tau ** 2) * (1 - m_tau ** 2 / m_branon ** 2) ** (1.0 / 2) 
+
+        c_0_tau = 0
+        c_0_T  = c_0_top + c_0_Z + c_0_W + c_0_h + c_0_c + c_0_b + c_0_tau
+        br_t   = (c_0_top / c_0_T)
+        br_Z   = c_0_Z / c_0_T
+        br_W   = c_0_W / c_0_T
+        br_h   = c_0_h / c_0_T
+        br_c   = c_0_c / c_0_T
+        br_b   = c_0_b / c_0_T
+        br_tau = c_0_tau / c_0_T
         return {'masas': m_branon, 't': br_t, 'Z': br_Z, 'W': br_W, 'h': br_h, 'c': br_c, 'b': br_b, 'Tau': br_tau}	
         
     
@@ -249,11 +226,6 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
       #  if x == 1:
       #      break
     if option is 'e':
-        '''#if mass == 5000 and boost > 1:
-        file1.write(str(x*mass*10**3+1) + " " + "1e-99" + "\n")
-        file1.write(str(x*mass*10**3+5) + " " + "1e-99" + "\n")
-        file1.write(str(x*mass*10**3+10) + " " + "1e-99" + "\n")
-        file1.close()'''
         return (evals,dNde)
     if option is 'e2':
         return (evals,e2dNde)
@@ -264,6 +236,7 @@ def getDMspectrum(option='e',finalstate='b',mass=1000,channel=None,Jfactor=1.7e1
     else:
         print('Option '+str(option)+' not supported')
 		
+
 ##------------------------------##
 ##- Data from the 3FGL catalog -##
 ##------------------------------##
@@ -273,19 +246,43 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 					#Spectral energy distribution (MeV)
 	F=['Flux100_300','Flux300_1000','Flux1000_3000','Flux3000_10000','Flux10000_100000']
 	Func=['Unc_Flux100_300','Unc_Flux300_1000','Unc_Flux1000_3000','Unc_Flux3000_10000','Unc_Flux10000_100000']
+	
+	E1    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
+	Emin1 = E1-np.array([100,300,1000,3000,10000,])
+	Emax1 = np.array([300,1000,3000,10000,100000])-E1
+	
+	E1    = E1*1e-6	#TeV
+	Emin1 = Emin1*1e-6
+	Emax1 = Emax1*1e-6
+	#evals= E
+	#logarithmic mid-point of the band
+	
 	a,b=0,0
-	nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup=[],[],[],[],[],[]
+
+	nuFnu = []; flux = []; unc_fluxm = []; unc_fluxp = []; unc_num = []; unc_nup = []
+	E = []; Emin = []; Emax = []
+
 	while a<3034:	#3034 objects
 		if name[a]==source:
 			while b<len(F):
-				nuFnu.append(t[a][Fnu[b]])
-				flux.append(t[a][F[b]])
-				unc_fluxm.append(-t[a][Func[b]][0])
-				unc_fluxp.append(t[a][Func[b]][1])
-				unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
-				unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+				if np.isnan(-t[a][Func[b]][0]) == False :		
+					if np.isinf(-t[a][Func[b]][0]) == False :
+
+						nuFnu.append(t[a][Fnu[b]])
+						flux.append(t[a][F[b]])
+						unc_fluxm.append(-t[a][Func[b]][0])
+						unc_fluxp.append(t[a][Func[b]][1])
+						unc_num.append(-(t[a][Func[b]][0])*(t[a][Fnu[b]])/(t[a][F[b]]))
+						unc_nup.append((t[a][Func[b]][1])*(t[a][Fnu[b]])/(t[a][F[b]]))
+
+						E.append(E1[b])
+						Emin.append(Emin1[b])
+						Emax.append(Emax1[b])
+
+						
 				b=b+1
 		a=a+1
+
 	nuFnu     = np.array(nuFnu)
 	flux      = np.array(flux)
 	unc_fluxm = np.array(unc_fluxm)
@@ -293,44 +290,15 @@ def nu(source):	#Source=Source_Name, t=complete catalog matrix
 	unc_num   = np.array(unc_num)
 	unc_nup   = np.array(unc_nup)
 	
-	i = np.isnan(unc_fluxm)
-	unc_fluxm[i] = 0
-	j = np.isnan(unc_num)
-	unc_num[j] = 0
-	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup)
+	E         = np.array(E)
+	Emin      = np.array(Emin)
+	Emax      = np.array(Emax)
 
-
+	return (nuFnu,flux,unc_fluxm, unc_fluxp, unc_num, unc_nup, E, Emin, Emax)
+	
 ##-----------------##
 ##- chi2 function -##
 ##-----------------##
-
-'''def chi2(c) :			
-	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given"""
-
-	m  = c[1]
-	Jm = c[0]*6e18
-	J  = Jm*c[1]
-
-	(Edm,nuFnudm) = getDMspectrum('e2','b',mass=m,channel=chan,Jfactor=J)
-	Edm,nuFnudm=np.array(Edm),np.array(nuFnudm)
-
-	i,c2=0,0
-	while i<len(E) :
-		index = np.argmin(np.abs(Edm - E[i]))
-		delta = (nuFnu[i] - nuFnudm[index])
-		sigma = (unc_nup[i] + unc_num[i]) / 2
-		alpha = (unc_nup[i] - unc_num[i]) / 2
-		A     = (alpha / sigma)
-		chi   = (delta/sigma)**2 * (1 - 2*A*delta/sigma + 5*(A*delta/sigma)**2)
-		
-		c2    = c2 + chi
-		i=i+1
-
-	#print('mass',m,'Jfactor',J,'chi2',c2)
-	print('Jm : J/m',Jm,'mass',m,'Jfactor',J,'chi2',c2)
-
-	return c2'''
-
 
 def chi2(c) :			
 	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given
@@ -339,7 +307,7 @@ def chi2(c) :
 	Jboost  = c[0]
 	Jfactor = Jboost*1.7e19
 
-	(Edm,nuFnudm) = getDMspectrum('e2',finalstate='b',mass=mass,channel=chan, Jfactor=Jfactor)
+	(Edm,nuFnudm) = getDMspectrum('e2',finalstate='b',mass=mass, Jfactor=Jfactor)
 	Edm,nuFnudm=np.array(Edm),np.array(nuFnudm)
 
 	i,c2=0,0
@@ -361,26 +329,6 @@ def chi2(c) :
 	return c2
 
 
-"""
-def chi22(m) :			
-	#E,nuFnu from the 3FGL catalog, Edm,nuFnudm from the getDMspectrum function, they must be given
-	(Edm,nuFnudm) = getDMspectrum('e2','b',mass=m,channel=chan,Jfactor=Jfactor)
-	Edm,nuFnudm=np.array(Edm),np.array(nuFnudm)
-	i,c2 = 0,0
-	while i<len(E) :
-		index = np.argmin(np.abs(Edm - E[i]))
-		delta = (nuFnu[i] - nuFnudm[index])
-		sigma = (unc_nup[i] + unc_num[i]) / 2
-		alpha = (unc_nup[i] - unc_num[i]) / 2
-		A     = (alpha / sigma)
-		chi   = (delta/sigma)**2 * (1 - 2*A*delta/sigma + 5*(A*delta/sigma)**2)
-		
-		c2    = c2 + chi
-		i=i+1
-	print('2 : mass',m[0],'chi2',c2[0])
-	return c2
-"""
-
 ##---------------------##
 ##- chi2 minimization -##
 ##---------------------##
@@ -396,11 +344,11 @@ def massresult(func) :
 	bnds = [(0, 10),(mmin, 1e2)]
 	
 
-	#c0   = [1/0.121,12.46]	#c0, m0
+	c0   = [1/0.121,12.46]	#c0, m0
 
 	
-	c0 = differential_evolution(func, bnds)
-	c0 = c0.x
+	#c0 = differential_evolution(func, bnds)
+	#c0 = c0.x
 	mass = c0[1]
 	Jboost = c0[0]
 
@@ -419,17 +367,6 @@ def massresult(func) :
 	return mass, Jfactor, chi2
 
 
-"""
-def massresult2(func) :
-	m0    = [mass]
-	bnds2 = [(0,1e6)]
-	massresult2 = opt.minimize(func, m0, bounds=bnds2, method='SLSQP', tol=1e-6)	#func=chi22
-	#massresult2 = opt.minimize(func, m0, method='Nelder-Mead')	#func=chi22
-	mass2 = massresult2['x']
-	chi2  = massresult2['fun']
-	print('mass',mass2,'chi2',chi2)
-	return mass2, chi2
-"""
 
 ####################
 ### Main program ###
@@ -441,12 +378,6 @@ chan='b'
 b,m0=0,20
 
 ##Chosen points from the catalog 
-
-"""
-#Test points:
-E=np.array([3.e-4,5.e-4,3.e-3,1.e-2])		#TeV
-F=np.array([5.e-13,7.e-13,1.e-13,5.e-16])
-"""
 
 ##Opening and closing the catalog
 list=fits.open('3FGL.fit')
@@ -460,22 +391,9 @@ list.close()
 ##Creation of a document containing mass, Jfactor and chi2 of each source
 data=open('fitdata.dat','w')
 
-
-
-#name[2502]=3FGL J1924.8-1034
-
-
-#Different sources
-
-#a=2502
 a=0
 
-#while a<2503 :		#test
-#while a<3034 :
 while a<2 :
-
-#Different m0
-
 
 #while b<2 :
 
@@ -486,18 +404,7 @@ while a<2 :
 	print('\n\n\n\n\n','-------',a,'-------','\n',Source,'\n m0 =',m0)
 
 	##Spectral energy distribution##
-	#Ftot=t[:]['nuFnu300_1000']
-	#Ftot=np.array(Ftot)
-	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
-
-	E    = np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])	#TeV
-	Emin = E-np.array([100,300,1000,3000,10000,])
-	Emax = np.array([300,1000,3000,10000,100000])-E
-	
-	E    = E*1e-6	#TeV
-	Emin = Emin*1e-6
-	Emax = Emax*1e-6
-	#logarithmic mid-point of the band
+	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
 
 	print('\nSpectral energy distribution',nuFnu)
 	print('\nError bars\n',unc_num,'\n',unc_nup)
@@ -505,9 +412,6 @@ while a<2 :
 
 	#Minimization	
 	mass, Jfactor, X2 = massresult(chi2)
-	#Jfactor  = 1.7e19
-	#mass     = 30
-	#mass2, X2 = massresult2(chi22)
 	print('\nMass result=',mass,'\nJfactor=',Jfactor,'\nchi2=',X2)
 	write=Source+' '+str(chan)+' '+str(mass)+' '+str(Jfactor)+' '+str(X2)+'\n'
 	data.write(write)
@@ -532,32 +436,23 @@ while a<2 :
 	ax.set_xlabel('$E$ [TeV]')
 	ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
 
-	#ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup],fmt='--o',linewidth=1,label='data')
 
 	ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup],fmt='--o',linewidth=1)
 
-	#if mass!=0 :
-	#	(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
-	#	ax.plot(Edm1, Fdm1, label=m0, linewidth=1)
-	#plt.legend(loc=3, prop={'size':12})	
-	#(Edm1,Fdm1) = getDMspectrum('e2','b',mass,chan)
-	#ax.plot(Edm1, Fdm1, label="m = 0.01 TeV", color='red', linewidth=1)
 
 	say='m0: '+str(m0)+', J: '+str(Jfactor)+', m: '+str(mass)+', $\chi^2$:'+str(X2)
 	
-	(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
+	(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, Jfactor=Jfactor)
 	ax.plot(Edm1, Fdm1, label=say, linewidth=1)
 	plt.legend(loc=3, prop={'size':8})	
 
-	#a=a+1
+	a=a+1
 
 	m0=m0+20
-	b=b+1
+	#b=b+1
 	time = dt.datetime.now()
 	print('\nTime:',time-timei)
 
 data.close()
-
-#ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup],fmt='--o',linewidth=1,label='data')
 	
 plt.show()
