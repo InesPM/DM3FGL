@@ -88,12 +88,7 @@ nuFnu=t[:]['nuFnu300_1000']
 nuFnu=np.array(nuFnu)
 print(nuFnu)
 
-(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup) = nu(Source)
-#print('\nflux=',flux,'\nunc_flux=',unc_flux)
-E=np.array([sqrt(100*300),sqrt(300*1000),sqrt(1000*3000),sqrt(3000*10000),sqrt(10000*100000)])
-#Logarithmic mid-point slope
-
-#print('flujo diferencial a diferentes energías:',nu(Source))
+(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
 
 fig=pl.figure()
 
@@ -107,9 +102,7 @@ ax.set_xlabel('$E$ [TeV]')
 ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
 
 print('cosa',unc_fluxm)
-#ax.plot(E,flux,'g+',E,unc_flux,'cx')
-ax.errorbar(E, nuFnu, yerr=[unc_num,unc_nup],fmt='--o',lw=1)
-#ax.plot(E, nuFnu, 'g+')
+ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup],fmt='--o',linewidth=1)
 
 
 plt.show()
