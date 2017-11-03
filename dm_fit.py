@@ -1,16 +1,18 @@
 import numpy as np
 from math import *
-from scipy.optimize import curve_fit
 from astropy.io import fits
 from astropy.table import Table, Column
 import pylab as pl
-import scipy as sp
 import bisect
+import scipy as sp
+import scipy.optimize as opt
+from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from scipy.interpolate import spline
-import scipy.optimize as opt
+from scipy.stats import chi2
 from matplotlib import pyplot as plt
 import datetime as dt
+
 
 #############
 ### Paths ###
@@ -22,11 +24,12 @@ pl.rcParams['font.family'] = 'serif'
 pl.rcParams['lines.linewidth'] = 3
 
 
-pathforfigs ='/home/ines/Desktop/DM/TFGmodif'
-pathforaux='/home/ines/Desktop/DM/TFGmodif'
-filename=pathforaux+'/CascadeSpectra/Spectra/AtProduction_gammas.dat'
+pathforfigs ='~/home/ines/Desktop/DM/TFGmodif/whole/'
+pathforaux='~/home/ines/Desktop/DM/TFGmodif/talos/TFGmodif'
+#filename=pathforaux+'/CascadeSpectra/Spectra/AtProduction_gammas.dat'
+filename='AtProduction_gammas.dat'
 path=pathforaux+'/sensitivities/'
-path3FGL='/home/ines/Desktop/DM/TFGmodif'
+path3FGL='~/home/ines/Desktop/DM/TFGmodif'
 
 ###################
 ### Useful data ###
@@ -49,7 +52,7 @@ eV  = 1e-9 * GeV
 
 def getDMspectrum(evals, mass=1000, Jboost=1):
 	option     = 'e2'
-	finalstate = 'new'
+	#channel    = 'W'
 	boost      = 1
 	Jfactor    = Jboost*1.7e19
 	#Options:
@@ -61,9 +64,10 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 	sigmav=3*1e-26 # annihilation cross section in cm3s-1
 	data = np.genfromtxt (filename, names = True ,dtype = None,comments='#')
 
+
 	massvals = data["mDM"]
 
-	print(a,'- mass:',mass,', J:',Jfactor,'\n')   
+	print(a, finalstate, '- mass:',mass,', J:',Jfactor,'\n')   
 	
 	if (mass < np.max(massvals) and mass > np.min(massvals)) :
 		min = np.min(np.abs( (massvals - mass) /mass))
@@ -76,13 +80,13 @@ def getDMspectrum(evals, mass=1000, Jboost=1):
 
 	def branchingratios(m_branon): #<sigmav>_particle / <sigmav>_total
 	#PhysRevD.68.103505		#GeV/c**2
-		m_top = 172.44
-		m_W   = 80.4
-		m_Z   = 91.2
-		m_h   = 125.1
-		m_c   = 1.275
-		m_b   = 4.18
-		m_tau = 1.7768
+		m_top = masses['t']
+		m_W   = masses['W']
+		m_Z   = masses['Z']
+		m_h   = masses['h']
+		m_c   = masses['c']
+		m_b   = masses['b']
+		m_tau = masses['Tau']
 		#if channel == None:
 		if m_branon > m_top:
 			c_0_top = 3.0 / 16 * m_branon ** 2 * m_top ** 2 * (m_branon ** 2 - m_top ** 2) * (1 - m_top ** 2 / m_branon ** 2) ** (1.0 / 2) 
@@ -335,15 +339,39 @@ timei = dt.datetime.now()
 ##----------------------------------##
 
 ##Opening and closing the catalog
-hdulist = fits.open('3FGL.fit')
+hdulist = fits.open('b3FGL.fit')
 header  = hdulist[1].header
 data    = hdulist[1].data
 t       = Table(data)
 hdulist.close()
 
-##Creation of a document containing mass, Jfactor and chi2 of each source
-f = open('test3FGL.dat','a')
-g = open('new3FGL.dat','a')
+hdulist2 = fits.open('new3FGL.fit')
+header2  = hdulist2[1].header
+data2    = hdulist2[1].data
+t2       = Table(data2)
+hdulist2.close()
+
+mass_b       = t[:]['mass']
+unc_mass_b   = t[:]['unc_mass']
+J_b          = t[:]['J_factor']
+unc_J_b      = t[:]['unc_J_factor']
+chi_square_b = t[:]['chi_square']
+
+mass_new       = t2[:]['mass']
+unc_mass_new   = t2[:]['unc_mass']
+J_new          = t2[:]['J_factor']
+unc_J_new      = t2[:]['unc_J_factor']
+chi_square_new = t2[:]['chi_square']
+
+name=t[:]['Source_Name']
+
+##--------------##
+##- Dictionary -##
+##--------------##
+
+masses = {'W': 80.4, 'Tau': 1.7768, 'b': 4.18, 't': 172.44,  'Z': 91.2, 'h': 125.1, 'c': 1.275}
+
+fst = ['W','Tau','t','Z','h','c']		#finalstate values
 
 ##---------------##
 ##- Some arrays -##
@@ -353,105 +381,157 @@ g = open('new3FGL.dat','a')
 evals = np.logspace(np.log10(6)-13,2,20000)
 
 ##new catalog parameters
-mass_a     = np.empty((3034,))
-unc_mass_a = np.empty((3034,))
-J_a        = np.empty((3034,))
-unc_J_a    = np.empty((3034,))
-chi2_a     = np.empty((3034,))
+mass_a     = np.empty((len(fst)+2,3034,))
+unc_mass_a = np.empty((len(fst)+2,3034,))
+J_a        = np.empty((len(fst)+2,3034,))
+unc_J_a    = np.empty((len(fst)+2,3034,))
+chi2_a     = np.empty((len(fst)+2,3034,))
+P_a        = np.empty((len(fst)+2,3034,))
 
 ##---------------------------------##
 ##- Analysis of different sources -##
 ##---------------------------------##
 
-a=0
-while a<3034 :
+##Creation of a document containing mass, Jfactor and chi2 of each source
+f = open('DM3FGL.dat','a')
 
+a=0
+
+while a<3034:
 	##Source name
-	name=t[:]['Source_Name']
 	Source = name[a]
 	print('\n\n\n\n\n','-------',a,'-------','\n',Source)
 
 	##Spectral energy distribution##
 	(nuFnu,flux,unc_fluxm,unc_fluxp,unc_num,unc_nup,E,Emin,Emax) = nu(Source)
 
+	df = len(nuFnu)-1
+	
 	print('\nSpectral energy distribution',nuFnu)
 	print('\nError bars\n',unc_num,'\n',unc_nup)
 	print('\n\n')
 
-	##-------------##
-	##- Curve fit -##
-	##-------------##
-	
-	if len(nuFnu)>0 :
-		s = (unc_num+unc_nup)/2
-		#print(s.shape)
-		popt, pcov = curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=(40,1), sigma=s, absolute_sigma=True, bounds=[(5, 1e-3),(1e3, 1e3),])
-		mass    = popt[0]
-		Jboost  = popt[1]
-		merr    = sqrt(pcov[0][0])
-		Jerr    = sqrt(pcov[1][1])	
-		Jfactor = Jboost*1.7e19
-		Jferr   = Jerr*1.7e19
+	f.write(Source)
 
-		X2 = chi2(getDMspectrum)
+	if len(nuFnu)>0:
 
+		df = int(len(nuFnu)-1)	
 
-		#############
-		### plots ###
-		#############
-		'''
 		fig=pl.figure(num=a)
 
-		comment = 'mass='+str(mass)+'$\pm$'+str(merr)+'GeV, J='+str(Jfactor)+'$\pm$'+str(Jferr)+', $\chi^2$:'+str(X2)
-		
 		ax=fig.add_subplot(111)
 		ax.set_yscale('log')
 		ax.set_xscale('log')
 		ax.set_xlim(1e-4, 0.1)
 		ax.set_ylim(5e-20,1e-10)
 		plt.suptitle(Source,fontsize=18)
-		ax.set_title(comment,fontsize=10)
+		#ax.set_title(comment,fontsize=10)
 		ax.set_xlabel('$E$ [TeV]')
 		ax.set_ylabel('$E^2 dN/dE$ [erg cm$^{-2}$ s$^{-1}$]')
-
+	
 		ax.errorbar(E, nuFnu, xerr=[Emin,Emax], yerr=[unc_num,unc_nup], fmt='--o', linewidth=1, label="data")
+	
+		finalstate = 'b'
+		comment = 'b: mass = $%.2f\pm%.2f$ GeV, J = $%.2e\pm%.2e$, $\chi^2 = %.4e$' % (mass_b[a], unc_mass_b[a], J_b[a], unc_J_b[a], chi_square_b[a])
+		Fdm = getDMspectrum(evals, mass_b[a], J_b[a]/(1.7e19))
+		ax.plot(evals, Fdm, label=comment, linewidth=1)
+		plt.legend(loc=3, prop={'size':10})
 
+	#finalstate = 'new'
+	#comment = 'BWS: mass = $%.2f\pm%.2f$ GeV, J = $%.2e\pm%.2e$, $\chi^2 = %.4e$' % (mass_new[a], unc_mass_new[a], J_new[a], unc_J_new[a], chi_square_new[a])
+	#Fdm = getDMspectrum(evals, mass_new[a], J_new[a]/(1.7e19))
+	#ax.plot(evals, Fdm, label=comment, linewidth=1)
+	#plt.legend(loc=3, prop={'size':10})	
 
-		#(Edm1,Fdm1) = getDMspectrum('e2', 'b', mass=mass, channel=chan, Jfactor=Jfactor)
-		Fdm = getDMspectrum(evals, *popt)
-		ax.plot(evals, Fdm, label="fit", linewidth=1)
-		plt.legend(loc=3, prop={'size':12})	
-		'''
-	else :
-		mass    = 0
-		merr    = 0
-		Jfactor = 0
-		Jferr   = 0
+	##-------------##
+	##- Curve fit -##
+	##-------------##
+	
+	g=0
 
-		X2      = inf
+	#while g<len(fst):
 
-		print('Not fittable')
+	while g<len(fst):
+		finalstate = str(fst[g])
 		
-	mass_a[a]     = mass
-	unc_mass_a[a] = merr
-	J_a[a]        = Jfactor
-	unc_J_a[a]    = Jferr
-	chi2_a[a]     = X2
 
-	print('mass:',mass_a[a],', J:',J_a[a],'\nmerr:',unc_mass_a[a],', Jerr:',unc_J_a[a],', chi2:',chi2_a[a])
+		if len(nuFnu)>0 :
+			s = (unc_num+unc_nup)/2
+			#print(s.shape)
 
-	f.write(Source+' '+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2)+'\n')
-	g.write(Source+' '+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2)+'\n')
+			
+			
+			#mmin = float(np.maximum(5,masses[finalstate]))
+			bnds = [(np.maximum(5,masses[finalstate]), 1),(1e3, 1e5)]
+			CI = (masses[finalstate]+40,1)
+			#CI = differential_evolution(getDMspectrum, [(np.maximum(5,masses[finalstate]), 1e3),(1, 1e3)], seed=3)
+	
+			popt, pcov = curve_fit(getDMspectrum, xdata=E, ydata=nuFnu, p0=CI, sigma=s, absolute_sigma=True, bounds=bnds)
+			mass    = popt[0]
+			Jboost  = popt[1]
+			merr    = sqrt(pcov[0][0])
+			Jerr    = sqrt(pcov[1][1])	
+			Jfactor = Jboost*1.7e19
+			Jferr   = Jerr*1.7e19
 
-	time = dt.datetime.now()
-	print('\nTime:',time-timei)
+			X2      = float(chi2(getDMspectrum))
+			print('type X2:',type(X2),'type df:',type(df))
+			P       = chi2.sf(X2,df)
 
+			#############
+			### plots ###
+			#############
+	
+
+			comment = finalstate+': mass = $%.2f\pm%.2f$ GeV, J = $%.2e\pm%.2e$, $\chi^2 = %.4e$' % (mass, merr, Jfactor, Jferr, X2)
+	
+			Fdm = getDMspectrum(evals, *popt)
+			ax.plot(evals, Fdm, label=comment, linewidth=1)
+			plt.legend(loc=3, prop={'size':10})	
+	
+		else :
+			mass    = 0
+			merr    = 0
+			Jfactor = 0
+			Jferr   = 0
+	
+			X2      = inf
+			P       = 0
+	
+			print('Not fittable')
+			
+		mass_a[g][a]     = mass
+		unc_mass_a[g][a] = merr
+		J_a[g][a]        = Jfactor
+		unc_J_a[g][a]    = Jferr
+		chi2_a[g][a]     = X2
+		P_a[g][a]        = P
+	
+		print('mass: ',mass_a[g][a],', J:',J_a[g][a],'\nmerr:',unc_mass_a[g][a],', Jerr:',unc_J_a[g][a],', chi2:',chi2_a[g][a])
+	
+		f.write(' %13.10f %13.10f %17.10e %17.10e %13.10f' % (mass, merr, Jfactor, Jferr, X2))	#+str(mass)+' '+str(merr)+' '+str(Jfactor)+' '+str(Jferr)+' '+str(X2))
+	
+		time = dt.datetime.now()
+		print('\nTime:',time-timei)
+	
+		g=g+1
+
+	#b and new probabilities
+
+	P_a[len(fst)+0][a] = chi2.sf(chi_square_b[a],df)
+	P_a[len(fst)+1][a] = chi2.sf(chi_square_new[a],df)
+
+	#plt.savefig('Figure_%.0f.png' % (a))
+
+	f.write('\n')
 	a=a+1
+
 
 #plt.show()
 
 f.close()
-g.close()
+
+
 
 #####################
 ### New fits file ###
@@ -461,13 +541,80 @@ g.close()
 ##- Creation -##
 ##------------##
 
-mass_c = Column(name = 'mass', data = mass_a, format = 'E')
-unc_mass_c = Column(name = 'unc_mass', data = unc_mass_a, format = 'E')
-J_c = Column(name = 'J_factor', data = J_a, format = 'E')
-unc_J_c = Column(name = 'unc_J_factor', data = unc_J_a, format = 'E')
-chi2_c = Column(name = 'chi_square', data = chi2_a, format = 'E')
+## b annihilation source (already in the catalog)
+
+t.rename_column('mass', 'mass_b')
+t.rename_column('unc_mass', 'unc_mass_b')
+t.rename_column('J_factor', 'J_factor_b')
+t.rename_column('unc_J_factor', 'unc_J_factor_b')
+t.rename_column('chi_square', 'chi_square_b')
+
+P_c = Column(name = 'Probability_b', data = P_a[len(fst)][:], format = 'E')
+
+t.add_columns([P_c])
 
 
-t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c])
 
-t.write('new3FGL.fit', overwrite=True)
+## Annihilation sources
+
+g=0
+while g<len(fst):
+
+	finalstate = str(fst[g])
+	#print(finalstate)
+	
+	mass_c     = Column(name = 'mass_'         +finalstate, data = mass_a[g][:],     format = 'E')
+	unc_mass_c = Column(name = 'unc_mass_'     +finalstate, data = unc_mass_a[g][:], format = 'E')
+	J_c        = Column(name = 'J_factor_'     +finalstate, data = J_a[g][:],        format = 'E')
+	unc_J_c    = Column(name = 'unc_J_factor_' +finalstate, data = unc_J_a[g][:],    format = 'E')
+	chi2_c     = Column(name = 'chi_square_'   +finalstate, data = chi2_a[g][:],     format = 'E')
+	P_c        = Column(name = 'Probability_'  +finalstate, data = P_a[g][:],        format = 'E')
+
+	t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c, P_c])
+
+	mass_c     = None
+	unc_mass_c = None
+	J_c        = None
+	unc_J_c    = None
+	chi2_c     = None
+	P_c        = None
+
+	g=g+1
+
+## New annihilation source
+
+mass_c     = Column(name = 'mass_BWS',         data = np.array(mass_new),       format = 'E')
+unc_mass_c = Column(name = 'unc_mass_BWS',     data = np.array(unc_mass_new),   format = 'E')
+J_c        = Column(name = 'J_factor_BWS',     data = np.array(J_new),          format = 'E')
+unc_J_c    = Column(name = 'unc_J_factor_BWS', data = np.array(unc_J_new),      format = 'E')
+chi2_c     = Column(name = 'chi_square_BWS',   data = np.array(chi_square_new), format = 'E')
+P_c        = Column(name = 'Probability_BWS',  data = P_a[len(fst)+1][:],       format = 'E')
+
+t.add_columns([mass_c, unc_mass_c, J_c, unc_J_c, chi2_c, P_c])
+
+t.write('DM3FGL.fit', overwrite=True)
+
+'''
+##--------##
+##- Test -##
+##--------##
+
+hdulist2 = fits.open('DM3FGL.fit')
+header2 = hdulist[1].header
+data2 = hdulist2[1].data
+
+a=15
+
+print('b',  'mass',data2[a]['mass_b'],   'J', data2[a]['J_factor_b'],   'chi2', data2[a]['chi_square_b'],   'P', data2[a]['Probability_b'])
+print('W',  'mass',data2[a]['mass_W'],   'J', data2[a]['J_factor_W'],   'chi2', data2[a]['chi_square_W'],   'P', data2[a]['Probability_W'])
+print('Tau','mass',data2[a]['mass_Tau'], 'J', data2[a]['J_factor_Tau'], 'chi2', data2[a]['chi_square_Tau'], 'P', data2[a]['Probability_Tau'])
+print('t',  'mass',data2[a]['mass_t'],   'J', data2[a]['J_factor_t'],   'chi2', data2[a]['chi_square_t'],   'P', data2[a]['Probability_t'])
+print('Z',  'mass',data2[a]['mass_Z'],   'J', data2[a]['J_factor_Z'],   'chi2', data2[a]['chi_square_Z'],   'P', data2[a]['Probability_Z'])
+print('h',  'mass',data2[a]['mass_h'],   'J', data2[a]['J_factor_h'],   'chi2', data2[a]['chi_square_h'],   'P', data2[a]['Probability_h'])
+print('c',  'mass',data2[a]['mass_c'],   'J', data2[a]['J_factor_c'],   'chi2', data2[a]['chi_square_c'],   'P', data2[a]['Probability_c'])
+print('BWS','mass',data2[a]['mass_BWS'], 'J', data2[a]['J_factor_BWS'], 'chi2', data2[a]['chi_square_BWS'], 'P', data2[a]['Probability_BWS'])
+
+
+hdulist2.close()
+
+'''
